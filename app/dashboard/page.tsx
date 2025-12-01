@@ -130,70 +130,70 @@ export default function DashboardPage() {
 
         <main className="flex-1 overflow-y-auto p-6">
           {/* Header */}
-          <div className="mb-6">
-            <div className="flex items-start justify-between gap-6">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-1">Dashboard Analytics</h1>
-                <p className="text-gray-600">Selamat datang kembali! Berikut ringkasan bisnis Anda hari ini.</p>
-              </div>
+          <div className="mb-4 sm:mb-6">
+  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
+    <div className="flex-1">
+      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-1">Dashboard Analytics</h1>
+      <p className="text-sm sm:text-base text-gray-600">Selamat datang kembali! Berikut ringkasan bisnis Anda hari ini.</p>
+    </div>
 
-              <div className="bg-white px-5 py-3 rounded-xl shadow-sm border border-gray-200 min-w-[240px]">
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Pilih Kantor</label>
-                <select
-                  value={selectedCabangId || ''}
-                  onChange={(e) => setSelectedCabangId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
-                >
-                  {cabangList.length > 0 ? (
-                    cabangList.map((cabang) => (
-                      <option key={cabang.id} value={cabang.id}>
-                        {cabang.nama_cabang}
-                      </option>
-                    ))
-                  ) : (
-                    <option disabled>No branches available</option>
-                  )}
-                </select>
-              </div>
-            </div>
-          </div>
+    <div className="bg-white px-4 sm:px-5 py-3 rounded-xl shadow-sm border border-gray-200 w-full sm:w-auto sm:min-w-[240px]">
+      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Pilih Kantor</label>
+      <select
+        value={selectedCabangId || ''}
+        onChange={(e) => setSelectedCabangId(e.target.value)}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+      >
+        {cabangList.length > 0 ? (
+          cabangList.map((cabang) => (
+            <option key={cabang.id} value={cabang.id}>
+              {cabang.nama_cabang}
+            </option>
+          ))
+        ) : (
+          <option disabled>No branches available</option>
+        )}
+      </select>
+    </div>
+  </div>
+</div>
 
-          {/* Info Banner - Tidak Ada Data Bulan Ini */}
-          {pendapatan === 0 && hpp === 0 && pengeluaran === 0 && (
-            <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
-                    <span className="text-2xl">📊</span>
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">
-                    Belum Ada Transaksi Bulan Ini
-                  </h3>
-                  <p className="text-sm text-gray-700 mb-3">
-                    Dashboard menampilkan data untuk bulan <strong>{new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</strong>. 
-                    Saat ini belum ada transaksi penjualan yang tercatat untuk periode ini.
-                  </p>
-                  <div className="flex gap-3">
-                    <a 
-                      href="/transaksi/penjualan" 
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg transition-colors"
-                    >
-                      <ShoppingBag className="w-4 h-4" />
-                      Buat Transaksi Penjualan
-                    </a>
-                    <a 
-                      href="/transaksi/konsinyasi"
-                      className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-lg border border-gray-300 transition-colors"
-                    >
-                      Buat Transaksi Konsinyasi
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+{/* Info Banner - Tidak Ada Data Bulan Ini */}
+{pendapatan === 0 && hpp === 0 && pengeluaran === 0 && (
+  <div className="mb-4 sm:mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 sm:p-5">
+    <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
+      <div className="flex-shrink-0 mx-auto sm:mx-0">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 rounded-full flex items-center justify-center">
+          <span className="text-xl sm:text-2xl">📊</span>
+        </div>
+      </div>
+      <div className="flex-1 text-center sm:text-left">
+        <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1">
+          Belum Ada Transaksi Bulan Ini
+        </h3>
+        <p className="text-xs sm:text-sm text-gray-700 mb-3">
+          Dashboard menampilkan data untuk bulan <strong>{new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</strong>. 
+          Saat ini belum ada transaksi penjualan yang tercatat untuk periode ini.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <a 
+            href="/transaksi/penjualan" 
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-sm font-semibold rounded-lg transition-colors"
+          >
+            <ShoppingBag className="w-4 h-4" />
+            <span className="whitespace-nowrap">Buat Transaksi Penjualan</span>
+          </a>
+          <a 
+            href="/transaksi/konsinyasi"
+            className="px-4 py-2 bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg border border-gray-300 transition-colors text-center"
+          >
+            Buat Transaksi Konsinyasi
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
           {/* Main KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
