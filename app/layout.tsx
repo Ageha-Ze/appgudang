@@ -1,26 +1,20 @@
-// app/layout.tsx
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import ConnectionHandler from "@/components/ConnectionHandler";
+import UIWrapper from "@/components/UIWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "GUDANG KITA - Sistem Inventori & Manajemen Keuangan",
+  title: "GUDANG KITA - Sistem Inventori",
   description: "Sistem manajemen inventori dan penjualan",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id">
       <body className={inter.className}>
-        {children}
-        <ConnectionHandler />
+        <UIWrapper>{children}</UIWrapper>
       </body>
     </html>
   );
