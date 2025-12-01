@@ -7,7 +7,7 @@ import ConnectionHandler from "@/components/ConnectionHandler";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "BARANGKU - Sistem Inventori",
+  title: "GUDANG KITA - Sistem Inventori & Manajemen Keuangan",
   description: "Sistem manajemen inventori dan penjualan",
 };
 
