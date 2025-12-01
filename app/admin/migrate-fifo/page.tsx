@@ -6,6 +6,7 @@ import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 
 export default function MigrateFIFOPage() {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [status, setStatus] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -61,7 +62,7 @@ export default function MigrateFIFOPage() {
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-800">
-
+      <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-4xl mx-auto">
             {/* Header */}
