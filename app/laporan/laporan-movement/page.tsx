@@ -163,46 +163,46 @@ export default function LaporanMovementPage() {
           <div className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tipe</label>
-                <select
-                  value={filters.tipe}
-                  onChange={(e) => {
-                    setFilters({ ...filters, tipe: e.target.value });
-                    setPage(1);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  <option value="">Semua</option>
-                  <option value="masuk">Masuk</option>
-                  <option value="keluar">Keluar</option>
-                </select>
-              </div>
+  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Tipe</label>
+  <select
+    value={filters.tipe}
+    onChange={(e) => {
+      setFilters({ ...filters, tipe: e.target.value });
+      setPage(1);
+    }}
+    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+  >
+    <option value="">Semua</option>
+    <option value="masuk">Masuk</option>
+    <option value="keluar">Keluar</option>
+  </select>
+</div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai</label>
-                <input
-                  type="date"
-                  value={filters.start_date}
-                  onChange={(e) => {
-                    setFilters({ ...filters, start_date: e.target.value });
-                    setPage(1);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
+<div>
+  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Tanggal Mulai</label>
+  <input
+    type="date"
+    value={filters.start_date}
+    onChange={(e) => {
+      setFilters({ ...filters, start_date: e.target.value });
+      setPage(1);
+    }}
+    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+  />
+</div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Akhir</label>
-                <input
-                  type="date"
-                  value={filters.end_date}
-                  onChange={(e) => {
-                    setFilters({ ...filters, end_date: e.target.value });
-                    setPage(1);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
+<div>
+  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Tanggal Akhir</label>
+  <input
+    type="date"
+    value={filters.end_date}
+    onChange={(e) => {
+      setFilters({ ...filters, end_date: e.target.value });
+      setPage(1);
+    }}
+    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+  />
+</div>
 
               <div className="col-span-2 flex items-end">
                 <button
