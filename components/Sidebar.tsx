@@ -83,7 +83,7 @@ const menuItems = [
 
 interface SidebarProps {
   isOpen: boolean;
-  onClose?: () => void;
+  onClose: () => void;
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
@@ -108,31 +108,26 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     );
   };
 
-  // Auto close on mobile when navigating
-  useEffect(() => {
-    if (onClose && window.innerWidth < 1024) {
+  const handleLinkClick = () => {
+    // Tutup sidebar di mobile saat klik link
+    if (window.innerWidth < 1024) {
       onClose();
     }
-  }, [pathname, onClose]);
-
-  useEffect(() => {
-    console.log('Sidebar isOpen:', isOpen);
-  }, [isOpen]);
+  };
 
   return (
     <>
-      {/* Overlay - HARUS ADA Z-INDEX TINGGI */}
+      {/* Overlay untuk mobile */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 z-[100] lg:hidden"
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
           onClick={onClose}
-          style={{ WebkitTapHighlightColor: 'transparent' }}
         />
       )}
 
-      {/* Sidebar - Z-INDEX LEBIH TINGGI DARI OVERLAY */}
+      {/* Sidebar */}
       <aside
-        className={`fixed lg:static top-0 left-0 h-full w-72 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 text-white border-r border-white/10 z-[101] transition-transform duration-300 ease-in-out ${
+        className={`fixed lg:static top-0 left-0 h-full w-72 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 text-white border-r border-white/10 z-50 transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -185,6 +180,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                           <Link
                             key={sub.id}
                             href={sub.href}
+                            onClick={handleLinkClick}
                             className={`flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${
                               pathname === sub.href
                                 ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium'
@@ -201,6 +197,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 ) : (
                   <Link
                     href={item.href}
+                    onClick={handleLinkClick}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                       pathname === item.href
                         ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium'
