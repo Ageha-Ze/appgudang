@@ -200,7 +200,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
             <div>
               <h1 className="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
-                SYIFA HAVEN  
+                GUDANG KITA  
               </h1>
               <p className="text-xs text-blue-200/60">Tanggal: 16.11.2025</p>
             </div>
