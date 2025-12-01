@@ -1,17 +1,35 @@
 "use client";
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
 
 export default function UIWrapper({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Sidebar terbuka di desktop, tertutup di mobile
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Set default state berdasarkan ukuran layar
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setSidebarOpen(true); // Desktop: buka
+      } else {
+        setSidebarOpen(false); // Mobile: tutup
+      }
+    };
+
+    // Set initial state
+    handleResize();
+
+    // Listen untuk resize
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
+      
       {/* Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <Navbar
