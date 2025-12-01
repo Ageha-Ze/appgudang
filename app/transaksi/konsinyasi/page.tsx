@@ -51,6 +51,7 @@ export default function KonsinyasiPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const limit = 10;
 
   useEffect(() => {
     if (activeTab === 'transaksi') {
@@ -63,7 +64,7 @@ export default function KonsinyasiPage() {
   const fetchTransaksi = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/transaksi/konsinyasi?page=${page}&limit=10&search=${search}`);
+      const res = await fetch(`/api/transaksi/konsinyasi?page=${page}&limit=${limit}&search=${search}`);
       const json = await res.json();
       
       setTransaksiList(json.data || []);
@@ -78,7 +79,7 @@ export default function KonsinyasiPage() {
   const fetchToko = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/transaksi/konsinyasi/toko?page=${page}&limit=10&search=${search}`);
+      const res = await fetch(`/api/transaksi/konsinyasi/toko?page=${page}&limit=${limit}&search=${search}`);
       const json = await res.json();
       
       setTokoList(json.data || []);
@@ -137,7 +138,11 @@ export default function KonsinyasiPage() {
     }
   };
 
-  // Calculate hasil penjualan (total dari jumlah_terjual * harga_konsinyasi)
+  const handleSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
   const calculateHasilPenjualan = (detail?: DetailKonsinyasi[]) => {
     if (!detail || detail.length === 0) return 0;
     
@@ -147,33 +152,33 @@ export default function KonsinyasiPage() {
   };
 
   return (
-    <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div className="p-3 sm:p-6 bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-8 bg-white p-4 rounded-xl shadow-lg border-l-4 border-indigo-500">
-        <div className="bg-indigo-500 p-3 rounded-lg">
-          <Package className="text-white" size={24} />
+      <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-8 bg-white p-3 sm:p-4 rounded-xl shadow-lg border-l-4 border-indigo-500">
+        <div className="bg-indigo-500 p-2 sm:p-3 rounded-lg">
+          <Package className="text-white" size={20} />
         </div>
         <div>
-          <p className="text-sm text-indigo-600">Transaksi</p>
-          <h1 className="text-2xl font-bold text-indigo-700">Konsinyasi / Penitipan Barang</h1>
+          <p className="text-xs sm:text-sm text-indigo-600">Transaksi</p>
+          <h1 className="text-lg sm:text-2xl font-bold text-indigo-700">Konsinyasi / Penitipan Barang</h1>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2">
         <button
           onClick={() => {
             setActiveTab('transaksi');
             setPage(1);
             setSearch('');
           }}
-          className={`flex items-center gap-2 px-6 py-3 rounded-lg transition ${
+          className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition whitespace-nowrap text-sm sm:text-base ${
             activeTab === 'transaksi'
               ? 'bg-indigo-600 text-white shadow-lg'
               : 'bg-white text-gray-700 hover:bg-indigo-50'
           }`}
         >
-          <ShoppingCart size={20} />
+          <ShoppingCart size={18} />
           <span className="font-medium">Transaksi Konsinyasi</span>
         </button>
         <button
@@ -182,29 +187,26 @@ export default function KonsinyasiPage() {
             setPage(1);
             setSearch('');
           }}
-          className={`flex items-center gap-2 px-6 py-3 rounded-lg transition ${
+          className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition whitespace-nowrap text-sm sm:text-base ${
             activeTab === 'toko'
               ? 'bg-indigo-600 text-white shadow-lg'
               : 'bg-white text-gray-700 hover:bg-indigo-50'
           }`}
         >
-          <Store size={20} />
+          <Store size={18} />
           <span className="font-medium">Master Toko</span>
         </button>
       </div>
 
       {/* Search & Add Button */}
-      <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-lg shadow-md">
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6 bg-white p-3 sm:p-4 rounded-lg shadow-md">
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700">Search:</label>
+          <label className="text-xs sm:text-sm font-medium text-gray-700">Search:</label>
           <input
             type="text"
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="px-4 py-2 border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            onChange={(e) => handleSearch(e.target.value)}
+            className="flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             placeholder="Cari..."
           />
         </div>
@@ -216,99 +218,344 @@ export default function KonsinyasiPage() {
               router.push('/transaksi/konsinyasi/toko/tambah');
             }
           }}
-          className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+          className="w-full sm:w-auto px-4 sm:px-6 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2"
         >
-          <Plus size={20} />
+          <Plus size={18} />
           Tambah {activeTab === 'transaksi' ? 'Konsinyasi' : 'Toko'}
         </button>
       </div>
 
-      {/* Content */}
-      {activeTab === 'transaksi' ? (
-        // Table Transaksi
-        <div className="overflow-x-auto bg-white rounded-xl shadow-lg border border-indigo-200">
-          <table className="w-full border-collapse">
-            <thead className="bg-indigo-100">
-              <tr>
-                <th className="px-4 py-3 text-left border border-indigo-200">Kode</th>
-                <th className="px-4 py-3 text-left border border-indigo-200">Tanggal</th>
-                <th className="px-4 py-3 text-left border border-indigo-200">Toko</th>
-                <th className="px-4 py-3 text-left border border-indigo-200">Cabang</th>
-                <th className="px-4 py-3 text-right border border-indigo-200">Total Nilai Titip</th>
-                <th className="px-4 py-3 text-right border border-indigo-200">Hasil Penjualan</th>
-                <th className="px-4 py-3 text-left border border-indigo-200">Status</th>
-                <th className="px-4 py-3 text-center border border-indigo-200">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-8 border border-indigo-200">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                      <p className="text-gray-500 font-medium">Memuat data...</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : transaksiList.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-8 border border-indigo-200">
-                    <div className="flex flex-col items-center gap-2 text-gray-500">
-                      <Package className="w-12 h-12 opacity-50" />
-                      <p className="font-medium">Belum ada transaksi konsinyasi</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                transaksiList.map((item, index) => {
-                  const hasilPenjualan = calculateHasilPenjualan(item.detail_konsinyasi);
-                  const persentaseTerjual = item.total_nilai_titip > 0 
-                    ? (hasilPenjualan / item.total_nilai_titip * 100) 
-                    : 0;
+      {/* Content - Mobile Cards View (Transaksi) */}
+      {activeTab === 'transaksi' && (
+        <>
+          <div className="block lg:hidden space-y-3">
+            {loading ? (
+              <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-gray-500 font-medium">Memuat data...</p>
+                </div>
+              </div>
+            ) : transaksiList.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+                <p className="text-gray-500">Tidak ada data</p>
+              </div>
+            ) : (
+              transaksiList.map((item) => {
+                const hasilPenjualan = calculateHasilPenjualan(item.detail_konsinyasi);
+                const persentaseTerjual = item.total_nilai_titip > 0 
+                  ? (hasilPenjualan / item.total_nilai_titip * 100) 
+                  : 0;
 
-                  return (
-                    <tr 
-                      key={item.id} 
-                      className={`border-b border-indigo-200 ${
-                        index % 2 === 0 ? 'bg-white' : 'bg-indigo-50'
-                      } hover:bg-indigo-100 transition-colors`}
-                    >
-                      <td className="px-4 py-3 border border-indigo-200 font-medium text-indigo-700">
-                        {item.kode_konsinyasi}
-                      </td>
-                      <td className="px-4 py-3 border border-indigo-200">
-                        {new Date(item.tanggal_titip).toLocaleDateString('id-ID', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric'
-                        })}
-                      </td>
-                      <td className="px-4 py-3 border border-indigo-200">
-                        {item.toko?.nama_toko || '-'}
-                      </td>
-                      <td className="px-4 py-3 border border-indigo-200">
-                        {item.cabang?.nama_cabang || '-'}
-                      </td>
-                      <td className="px-4 py-3 text-right border border-indigo-200 font-semibold">
-                        Rp {item.total_nilai_titip.toLocaleString('id-ID')}
-                      </td>
-                      <td className="px-4 py-3 border border-indigo-200">
+                return (
+                  <div key={item.id} className="bg-white rounded-xl shadow-lg p-4 border-l-4 border-indigo-500">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <div className="font-semibold text-indigo-700">{item.kode_konsinyasi}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {new Date(item.tanggal_titip).toLocaleDateString('id-ID')}
+                        </div>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        item.status === 'Aktif' ? 'bg-green-100 text-green-800' :
+                        item.status === 'Selesai' ? 'bg-blue-100 text-blue-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {item.status}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 text-sm mb-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Toko:</span>
+                        <span className="font-medium">{item.toko?.nama_toko || '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Cabang:</span>
+                        <span className="font-medium">{item.cabang?.nama_cabang || '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Nilai Titip:</span>
+                        <span className="font-semibold text-indigo-700">
+                          Rp. {item.total_nilai_titip.toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Hasil Penjualan:</span>
                         <div className="text-right">
-                          <div className="font-semibold text-green-600">
-                            Rp {hasilPenjualan.toLocaleString('id-ID')}
-                          </div>
+                          <span className="font-semibold text-green-600">
+                            Rp. {hasilPenjualan.toLocaleString('id-ID')}
+                          </span>
                           {item.total_nilai_titip > 0 && (
-                            <div className="text-xs text-gray-500 mt-1">
+                            <div className="text-xs text-gray-500">
                               {persentaseTerjual.toFixed(1)}% terjual
                             </div>
                           )}
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-3 border-t border-gray-200">
+                      <button
+                        onClick={() => router.push(`/transaksi/konsinyasi/${item.id}`)}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition text-sm"
+                      >
+                        <Eye size={16} />
+                        Detail
+                      </button>
+                      {item.status === 'Aktif' && (
+                        <button
+                          onClick={() => handleDeleteKonsinyasi(item.id)}
+                          className="flex items-center justify-center gap-2 px-3 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition text-sm"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop Table (Transaksi) */}
+          <div className="hidden lg:block overflow-x-auto bg-white rounded-xl shadow-lg border border-indigo-200">
+            <table className="w-full border-collapse">
+              <thead className="bg-indigo-100">
+                <tr>
+                  <th className="px-4 py-3 text-left border border-indigo-200">No</th>
+                  <th className="px-4 py-3 text-left border border-indigo-200">Kode</th>
+                  <th className="px-4 py-3 text-left border border-indigo-200">Tanggal</th>
+                  <th className="px-4 py-3 text-left border border-indigo-200">Toko</th>
+                  <th className="px-4 py-3 text-left border border-indigo-200">Cabang</th>
+                  <th className="px-4 py-3 text-right border border-indigo-200">Total Nilai Titip</th>
+                  <th className="px-4 py-3 text-right border border-indigo-200">Hasil Penjualan</th>
+                  <th className="px-4 py-3 text-center border border-indigo-200">Status</th>
+                  <th className="px-4 py-3 text-center border border-indigo-200">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={9} className="text-center py-8 border border-indigo-200">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-gray-500 font-medium">Memuat data...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : transaksiList.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="text-center py-8 border border-indigo-200">
+                      Tidak ada data
+                    </td>
+                  </tr>
+                ) : (
+                  transaksiList.map((item, index) => {
+                    const hasilPenjualan = calculateHasilPenjualan(item.detail_konsinyasi);
+                    const persentaseTerjual = item.total_nilai_titip > 0 
+                      ? (hasilPenjualan / item.total_nilai_titip * 100) 
+                      : 0;
+
+                    return (
+                      <tr 
+                        key={item.id} 
+                        className={`border-b border-indigo-200 ${index % 2 === 0 ? 'bg-white' : 'bg-indigo-50'} hover:bg-indigo-100`}
+                      >
+                        <td className="px-4 py-3 border border-indigo-200">
+                          {(page - 1) * limit + index + 1}
+                        </td>
+                        <td className="px-4 py-3 border border-indigo-200 font-mono text-sm">
+                          {item.kode_konsinyasi}
+                        </td>
+                        <td className="px-4 py-3 border border-indigo-200">
+                          {new Date(item.tanggal_titip).toLocaleDateString('id-ID')}
+                        </td>
+                        <td className="px-4 py-3 border border-indigo-200">
+                          {item.toko?.nama_toko || '-'}
+                        </td>
+                        <td className="px-4 py-3 border border-indigo-200">
+                          {item.cabang?.nama_cabang || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-right border border-indigo-200">
+                          Rp. {item.total_nilai_titip.toLocaleString('id-ID')}
+                        </td>
+                        <td className="px-4 py-3 border border-indigo-200">
+                          <div className="text-right">
+                            <div className="font-semibold text-green-600">
+                              Rp. {hasilPenjualan.toLocaleString('id-ID')}
+                            </div>
+                            {item.total_nilai_titip > 0 && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {persentaseTerjual.toFixed(1)}% terjual
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 border border-indigo-200">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            item.status === 'Aktif' ? 'bg-green-100 text-green-800' :
+                            item.status === 'Selesai' ? 'bg-blue-100 text-blue-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {item.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 border border-indigo-200">
+                          <div className="flex justify-center gap-2">
+                            <button
+                              onClick={() => router.push(`/transaksi/konsinyasi/${item.id}`)}
+                              className="text-blue-600 hover:text-blue-800 transition"
+                              title="Detail"
+                            >
+                              <Eye size={18} />
+                            </button>
+                            {item.status === 'Aktif' && (
+                              <button
+                                onClick={() => handleDeleteKonsinyasi(item.id)}
+                                className="text-red-600 hover:text-red-800 transition"
+                                title="Delete"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {/* Content - Mobile Cards View (Toko) */}
+      {activeTab === 'toko' && (
+        <>
+          <div className="block lg:hidden space-y-3">
+            {loading ? (
+              <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-gray-500 font-medium">Memuat data...</p>
+                </div>
+              </div>
+            ) : tokoList.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+                <p className="text-gray-500">Tidak ada data</p>
+              </div>
+            ) : (
+              tokoList.map((item) => (
+                <div key={item.id} className="bg-white rounded-xl shadow-lg p-4 border-l-4 border-indigo-500">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <div className="font-semibold text-indigo-700">{item.nama_toko}</div>
+                      <div className="text-xs text-gray-500 mt-1">{item.kode_toko}</div>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      item.status === 'Aktif' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {item.status}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 text-sm mb-3">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Pemilik:</span>
+                      <span className="font-medium">{item.pemilik || '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">No Telp:</span>
+                      <span className="font-medium">{item.no_telp || '-'}</span>
+                    </div>
+                    {item.alamat && (
+                      <div>
+                        <span className="text-gray-600">Alamat:</span>
+                        <p className="font-medium mt-1">{item.alamat}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 pt-3 border-t border-gray-200">
+                    <button
+                      onClick={() => router.push(`/transaksi/konsinyasi/toko/${item.id}`)}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition text-sm"
+                    >
+                      <Eye size={16} />
+                      Detail
+                    </button>
+                    <button
+                      onClick={() => handleDeleteToko(item.id)}
+                      className="flex items-center justify-center gap-2 px-3 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition text-sm"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table (Toko) */}
+          <div className="hidden lg:block overflow-x-auto bg-white rounded-xl shadow-lg border border-indigo-200">
+            <table className="w-full border-collapse">
+              <thead className="bg-indigo-100">
+                <tr>
+                  <th className="px-4 py-3 text-left border border-indigo-200">No</th>
+                  <th className="px-4 py-3 text-left border border-indigo-200">Kode</th>
+                  <th className="px-4 py-3 text-left border border-indigo-200">Nama Toko</th>
+                  <th className="px-4 py-3 text-left border border-indigo-200">Pemilik</th>
+                  <th className="px-4 py-3 text-left border border-indigo-200">No Telp</th>
+                  <th className="px-4 py-3 text-left border border-indigo-200">Alamat</th>
+                  <th className="px-4 py-3 text-center border border-indigo-200">Status</th>
+                  <th className="px-4 py-3 text-center border border-indigo-200">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="text-center py-8 border border-indigo-200">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-gray-500 font-medium">Memuat data...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : tokoList.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="text-center py-8 border border-indigo-200">
+                      Tidak ada data
+                    </td>
+                  </tr>
+                ) : (
+                  tokoList.map((item, index) => (
+                    <tr 
+                      key={item.id} 
+                      className={`border-b border-indigo-200 ${index % 2 === 0 ? 'bg-white' : 'bg-indigo-50'} hover:bg-indigo-100`}
+                    >
+                      <td className="px-4 py-3 border border-indigo-200">
+                        {(page - 1) * limit + index + 1}
+                      </td>
+                      <td className="px-4 py-3 border border-indigo-200 font-mono text-sm">
+                        {item.kode_toko}
+                      </td>
+                      <td className="px-4 py-3 border border-indigo-200 font-medium">
+                        {item.nama_toko}
+                      </td>
+                      <td className="px-4 py-3 border border-indigo-200">{item.pemilik || '-'}</td>
+                      <td className="px-4 py-3 border border-indigo-200">{item.no_telp || '-'}</td>
+                      <td className="px-4 py-3 border border-indigo-200">
+                        {item.alamat ? (
+                          <div className="max-w-xs truncate" title={item.alamat}>
+                            {item.alamat}
+                          </div>
+                        ) : '-'}
                       </td>
                       <td className="px-4 py-3 border border-indigo-200">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          item.status === 'Aktif' ? 'bg-green-100 text-green-800' :
-                          item.status === 'Selesai' ? 'bg-blue-100 text-blue-800' :
-                          'bg-red-100 text-red-800'
+                          item.status === 'Aktif' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                         }`}>
                           {item.status}
                         </span>
@@ -316,132 +563,41 @@ export default function KonsinyasiPage() {
                       <td className="px-4 py-3 border border-indigo-200">
                         <div className="flex justify-center gap-2">
                           <button
-                            onClick={() => router.push(`/transaksi/konsinyasi/${item.id}`)}
-                            className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition"
+                            onClick={() => router.push(`/transaksi/konsinyasi/toko/${item.id}`)}
+                            className="text-blue-600 hover:text-blue-800 transition"
                             title="Detail"
                           >
                             <Eye size={18} />
                           </button>
-                          {item.status === 'Aktif' && (
-                            <button
-                              onClick={() => handleDeleteKonsinyasi(item.id)}
-                              className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
-                              title="Hapus Konsinyasi"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleDeleteToko(item.id)}
+                            className="text-red-600 hover:text-red-800 transition"
+                            title="Delete"
+                          >
+                            <Trash2 size={18} />
+                          </button>
                         </div>
                       </td>
                     </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        // Table Toko
-        <div className="overflow-x-auto bg-white rounded-xl shadow-lg border border-indigo-200">
-          <table className="w-full border-collapse">
-            <thead className="bg-indigo-100">
-              <tr>
-                <th className="px-4 py-3 text-left border border-indigo-200">Kode</th>
-                <th className="px-4 py-3 text-left border border-indigo-200">Nama Toko</th>
-                <th className="px-4 py-3 text-left border border-indigo-200">Pemilik</th>
-                <th className="px-4 py-3 text-left border border-indigo-200">No Telp</th>
-                <th className="px-4 py-3 text-left border border-indigo-200">Alamat</th>
-                <th className="px-4 py-3 text-left border border-indigo-200">Status</th>
-                <th className="px-4 py-3 text-center border border-indigo-200">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 border border-indigo-200">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                      <p className="text-gray-500 font-medium">Memuat data...</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : tokoList.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 border border-indigo-200">
-                    <div className="flex flex-col items-center gap-2 text-gray-500">
-                      <Store className="w-12 h-12 opacity-50" />
-                      <p className="font-medium">Belum ada toko konsinyasi</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                tokoList.map((item, index) => (
-                  <tr 
-                    key={item.id} 
-                    className={`border-b border-indigo-200 ${
-                      index % 2 === 0 ? 'bg-white' : 'bg-indigo-50'
-                    } hover:bg-indigo-100 transition-colors`}
-                  >
-                    <td className="px-4 py-3 border border-indigo-200 font-medium text-indigo-700">
-                      {item.kode_toko}
-                    </td>
-                    <td className="px-4 py-3 border border-indigo-200 font-medium">
-                      {item.nama_toko}
-                    </td>
-                    <td className="px-4 py-3 border border-indigo-200">{item.pemilik || '-'}</td>
-                    <td className="px-4 py-3 border border-indigo-200">{item.no_telp || '-'}</td>
-                    <td className="px-4 py-3 border border-indigo-200">
-                      {item.alamat ? (
-                        <div className="max-w-xs truncate" title={item.alamat}>
-                          {item.alamat}
-                        </div>
-                      ) : '-'}
-                    </td>
-                    <td className="px-4 py-3 border border-indigo-200">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        item.status === 'Aktif' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 border border-indigo-200">
-                      <div className="flex justify-center gap-2">
-                        <button
-                          onClick={() => router.push(`/transaksi/konsinyasi/toko/${item.id}`)}
-                          className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
-                          title="Edit"
-                        >
-                          <Eye size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteToko(item.id)}
-                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
-                          title="Delete"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-4 mt-8 bg-white p-4 rounded-lg shadow-md">
+       {/* Pagination */}
+      {!loading && totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 mt-4 sm:mt-8 bg-white p-3 sm:p-4 rounded-lg shadow-md">
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="w-full sm:w-auto px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             Previous
           </button>
-          
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto max-w-full pb-2 sm:pb-0">
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               const pageNum = i + 1;
               return (
