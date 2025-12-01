@@ -8,6 +8,7 @@ import {
   FileText, User, Users, Truck, Briefcase, Wallet, Building,
   BoxIcon, TrendingUp, TrendingDown, Clipboard, ChevronDown,
   CreditCard, Sparkles,
+  Handshake,
 } from 'lucide-react';
 
 const menuItems = [
@@ -135,7 +136,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div className="px-6 py-6 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <Sparkles className="w-6 h-6 text-white" />
+              <Database className="w-6 h-6 text-white" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-white">GUDANG KITA</h1>
