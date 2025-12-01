@@ -5,20 +5,21 @@ import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
 
 export default function UIWrapper({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
-    <div className="flex">
+    <div className="flex h-screen overflow-hidden bg-gray-100">
+      {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex flex-col flex-1">
+      {/* Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
         <Navbar
-          title="Welcome Partner !"
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
+          title=""
         />
-
-        <main className="p-4">
+        <main className="flex-1 overflow-auto p-6">
           {children}
         </main>
       </div>
