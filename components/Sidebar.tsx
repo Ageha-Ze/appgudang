@@ -171,20 +171,20 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Overlay for mobile */}
       {isOpen && (
         <div 
-        className={`fixed lg:static inset-y-0 right-0 z-50 w-72 h-screen flex flex-col bg-gradient-to-br ...`}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
           onClick={onClose} 
         />
       )}
 
       {/* Sidebar */}
       <div
-  className={`fixed lg:static inset-y-0 right-0 z-50 w-72 h-screen flex flex-col bg-gradient-to-br from-slate-900/95 via-blue-900/95 to-purple-900/95 backdrop-blur-xl text-white border-r border-white/10 transition-transform duration-300 ease-in-out ${
-    isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
-  }`}
-  style={{
-    boxShadow: '0 0 40px rgba(59, 130, 246, 0.15), inset 0 0 60px rgba(147, 51, 234, 0.1)',
-  }}
->
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-72 h-screen flex flex-col bg-gradient-to-br from-slate-900/95 via-blue-900/95 to-purple-900/95 backdrop-blur-xl text-white border-r border-white/10 transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+        style={{
+          boxShadow: '0 0 40px rgba(59, 130, 246, 0.15), inset 0 0 60px rgba(147, 51, 234, 0.1)',
+        }}
+      >
         {/* Animated Background Overlay */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-0 -left-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
@@ -200,7 +200,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
             <div>
               <h1 className="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
-                GUDANG KITA
+                GUDANGKU
               </h1>
               <p className="text-xs text-blue-200/60">Tanggal: 16.11.2025</p>
             </div>
