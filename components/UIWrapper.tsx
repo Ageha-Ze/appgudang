@@ -2,9 +2,17 @@
 import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
+import { usePathname } from "next/navigation";
+
 
 export default function UIWrapper({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
+
+  const isAuthPage = pathname === "/login";
+  if (isAuthPage) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
