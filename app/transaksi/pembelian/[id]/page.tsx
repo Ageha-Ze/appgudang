@@ -11,6 +11,7 @@ import ModalPelunasan from '../ModalPelunasan';
 import ModalEditDataPembelian from '../ModalEditDataPembelian';
 import ModalEditUangMuka from '../ModalEditUangMuka';
 
+
 interface DetailPembelian {
   id: number;
   produk_id: number;
@@ -341,7 +342,12 @@ export default function DetailPembelianPage({
               </div>
               {isPending && (
                 <button
-                  onClick={() => setShowModalBarang(true)}
+                  onClick={() => {
+    console.log('Button clicked!');
+    console.log('showModalBarang sebelum:', showModalBarang);
+    setShowModalBarang(true);
+    console.log('showModalBarang sesudah:', true);
+  }}
                   className="px-5 py-2.5 bg-white text-purple-600 rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-105 font-semibold"
                 >
                   + Tambah Barang
@@ -507,6 +513,8 @@ export default function DetailPembelianPage({
           </div>
         </div>
 
+    // Bagian yang perlu diperbaiki di akhir file (mulai dari History Cicilan)
+
     {/* History Cicilan */}
     {isBilled && historyCicilan.length > 0 && (
       <div className="bg-white p-4 md:p-6 rounded-lg shadow-md">
@@ -534,7 +542,7 @@ export default function DetailPembelianPage({
           </div>
         </div>
 
-               {/* Table History */}
+        {/* Table History */}
         <div className="overflow-x-auto -mx-4 md:mx-0">
           <div className="inline-block min-w-full align-middle">
             <table className="min-w-full border-collapse border border-gray-200">
@@ -626,78 +634,75 @@ export default function DetailPembelianPage({
             </table>
           </div>
         </div>
-      )
-
-      {/* Modals */}
-      <ModalTambahBarang
-        isOpen={showModalBarang}
-        onClose={() => setShowModalBarang(false)}
-        onSuccess={fetchDetail}
-        pembelianId={parseInt(id)}
-      />
-
-      <ModalBilling
-        isOpen={showModalBilling}
-        onClose={() => setShowModalBilling(false)}
-        onSuccess={fetchDetail}
-        pembelianData={pembelian}
-      />
-
-      {selectedDetail && (
-        <ModalEditBarangPembelian
-          isOpen={showModalEditBarang}
-          onClose={() => {
-            setShowModalEditBarang(false);
-            setSelectedDetail(null);
-          }}
-          onSuccess={fetchDetail}
-          detail={selectedDetail}
-          pembelianId={parseInt(id)}
-        />
-      )}
-
-      <ModalCicil
-        isOpen={showModalCicil}
-        onClose={() => setShowModalCicil(false)}
-        onSuccess={fetchDetail}
-        pembelianId={parseInt(id)}
-        sisaTagihan={calculateTagihan()}
-        cabangId={pembelian?.cabang_id}
-      />
-
-      <ModalPelunasan
-        isOpen={showModalLunas}
-        onClose={() => setShowModalLunas(false)}
-        onSuccess={fetchDetail}
-        pembelianId={parseInt(id)}
-        sisaTagihan={calculateTagihan()}
-        cabangId={pembelian?.cabang_id}
-      />
-
-      <ModalEditDataPembelian
-        isOpen={showModalEditPembelian}
-        onClose={() => setShowModalEditPembelian(false)}
-        onSuccess={fetchDetail}
-        pembelianData={pembelian}
-      />
-
-      <ModalEditUangMuka
-        isOpen={showModalEditUangMuka}
-        onClose={() => setShowModalEditUangMuka(false)}
-        onSuccess={fetchDetail}
-        pembelianId={parseInt(id)}
-        cabangId={pembelian?.cabang_id}
-        currentData={{
-          uang_muka: pembelian.uang_muka,
-          biaya_kirim: pembelian.biaya_kirim,
-          rekening_bayar: pembelian.rekening_bayar,
-        }}
-      />
-    </div>
+      </div>
     )}
+
+    {/* Modals */}
+    <ModalTambahBarang
+      isOpen={showModalBarang}
+      onClose={() => setShowModalBarang(false)}
+      onSuccess={fetchDetail}
+      pembelianId={parseInt(id)}
+    />
+
+    <ModalBilling
+      isOpen={showModalBilling}
+      onClose={() => setShowModalBilling(false)}
+      onSuccess={fetchDetail}
+      pembelianData={pembelian}
+    />
+
+    {selectedDetail && (
+      <ModalEditBarangPembelian
+        isOpen={showModalEditBarang}
+        onClose={() => {
+          setShowModalEditBarang(false);
+          setSelectedDetail(null);
+        }}
+        onSuccess={fetchDetail}
+        detail={selectedDetail}
+        pembelianId={parseInt(id)}
+      />
+    )}
+
+    <ModalCicil
+      isOpen={showModalCicil}
+      onClose={() => setShowModalCicil(false)}
+      onSuccess={fetchDetail}
+      pembelianId={parseInt(id)}
+      sisaTagihan={calculateTagihan()}
+      cabangId={pembelian?.cabang_id}
+    />
+
+    <ModalPelunasan
+      isOpen={showModalLunas}
+      onClose={() => setShowModalLunas(false)}
+      onSuccess={fetchDetail}
+      pembelianId={parseInt(id)}
+      sisaTagihan={calculateTagihan()}
+      cabangId={pembelian?.cabang_id}
+    />
+
+    <ModalEditDataPembelian
+      isOpen={showModalEditPembelian}
+      onClose={() => setShowModalEditPembelian(false)}
+      onSuccess={fetchDetail}
+      pembelianData={pembelian}
+    />
+
+    <ModalEditUangMuka
+      isOpen={showModalEditUangMuka}
+      onClose={() => setShowModalEditUangMuka(false)}
+      onSuccess={fetchDetail}
+      pembelianId={parseInt(id)}
+      cabangId={pembelian?.cabang_id}
+      currentData={{
+        uang_muka: pembelian.uang_muka,
+        biaya_kirim: pembelian.biaya_kirim,
+        rekening_bayar: pembelian.rekening_bayar,
+      }}
+    />
+      </div>
     </div>
-    ); 
-  </div>
-  
- );
+  );
 }
