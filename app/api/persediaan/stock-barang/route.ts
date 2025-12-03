@@ -67,10 +67,29 @@ export async function GET(request: NextRequest) {
       if (h.tipe === 'keluar') summary.keluar += jumlah;
     });
 
+    // Get cabang info if filtered
+    let cabangName = 'Semua Cabang';
+    if (cabang_id > 0) {
+      const { data: cabangData } = await supabase
+        .from('cabang')
+        .select('nama_cabang')
+        .eq('id', cabang_id)
+        .single();
+      
+      if (cabangData) {
+        cabangName = cabangData.nama_cabang;
+      }
+    }
+
     // Format data dengan stock dari produk.stok
     const formattedData = products?.map(p => {
       const history = historyMap.get(p.id) || { masuk: 0, keluar: 0 };
       const stock = parseFloat(p.stok?.toString() || '0');
+      const hpp = parseFloat(p.hpp?.toString() || '0');
+      const harga_jual = parseFloat(p.harga?.toString() || '0');
+      
+      // Calculate margin
+      const margin = hpp > 0 ? ((harga_jual - hpp) / hpp) * 100 : 0;
 
       return {
         produk_id: p.id,
@@ -80,8 +99,11 @@ export async function GET(request: NextRequest) {
         stock: stock, // ✅ Langsung dari produk.stok
         stock_masuk: history.masuk,
         stock_keluar: history.keluar,
-        hpp: p.hpp || 0,
-        harga_jual: p.harga || 0,
+        hpp: hpp,
+        harga_jual: harga_jual,
+        margin: margin, // ✅ Add margin calculation
+        cabang: cabangName, // ✅ Add cabang name
+        cabang_id: cabang_id || 0, // ✅ Add cabang_id
         has_negative: stock < 0, // ✅ Flag warning
       };
     }) || [];
