@@ -1,258 +1,314 @@
-// app/api/gudang/produksi/[id]/post/route.ts
+// app/api/transaksi/pembelian/[id]/billing/route.ts
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabaseServer';
 
 export async function POST(
-  request: NextRequest, 
-  { params }: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { id: pembelian_id } = await context.params;
+    const body = await request.json();
     const supabase = await supabaseServer();
-    const produksiId = parseInt(id);
 
-    console.log('🔄 Posting produksi ID:', produksiId);
+    console.log('🔄 Processing billing for pembelian:', pembelian_id);
 
-    // ✅ Step 1: Get produksi with details
-    const { data: produksiData, error: getProduksiError } = await supabase
-      .from('transaksi_produksi')
+    // ✅ FIX: Check if already billed (PREVENT DUPLICATE)
+    const { data: checkData, error: checkError } = await supabase
+      .from('transaksi_pembelian')
+      .select('status')
+      .eq('id', parseInt(pembelian_id))
+      .single();
+
+    if (checkError) throw checkError;
+
+    if (checkData.status === 'billed') {
+      console.log('⚠️ Pembelian already billed, skipping...');
+      return NextResponse.json({
+        error: 'Pembelian sudah di-billing sebelumnya'
+      }, { status: 400 });
+    }
+
+    // Get pembelian with detail
+    const { data: pembelian, error: pembelianError } = await supabase
+      .from('transaksi_pembelian')
       .select(`
         *,
-        detail_produksi (
+        cabang:cabang_id (
           id,
-          item_id,
+          nama_cabang
+        ),
+        detail_pembelian (
+          id,
+          produk_id,
           jumlah,
-          hpp,
+          harga,
           subtotal
         )
       `)
-      .eq('id', produksiId)
+      .eq('id', parseInt(pembelian_id))
       .single();
 
-    if (getProduksiError) throw getProduksiError;
-    if (!produksiData) throw new Error('Produksi tidak ditemukan');
+    if (pembelianError) throw pembelianError;
 
-    console.log('📦 Data produksi:', produksiData);
+    const uang_muka = Number(body.uang_muka || 0);
+    const biaya_kirim = Number(body.biaya_kirim || 0);
+    const rekening_bayar = body.rekening_bayar || null;
 
-    // Check if already posted
-    if (produksiData.status === 'posted') {
-      return NextResponse.json({
-        error: 'Produksi sudah diposting sebelumnya'
-      }, { status: 400 });
-    }
+    // Calculate totals
+    const detail_pembelian = pembelian.detail_pembelian || [];
+    const subtotal = detail_pembelian.reduce(
+      (sum: number, item: any) => sum + Number(item.subtotal || 0),
+      0
+    );
+    const finalTotal = subtotal + biaya_kirim;
 
-    const details = produksiData.detail_produksi || [];
-
-    if (details.length === 0) {
-      return NextResponse.json({
-        error: 'Tidak ada detail produksi, tambahkan bahan baku terlebih dahulu'
-      }, { status: 400 });
-    }
-
-    // ✅ Step 2: Validasi stock SEMUA bahan baku DULU
-    console.log('🔍 Validating stock for', details.length, 'items...');
-    
-    for (const detail of details) {
-      if (!detail.item_id) continue;
-
-              const { data: item, error: itemError } = await supabase
-        .from('produk')
-        .select('id, nama_produk, stok')
-        .eq('id', detail.item_id)
-        .single();
-
-      if (itemError || !item) {
-        throw new Error(`❌ Item ID ${detail.item_id} tidak ditemukan atau sudah dihapus`);
-      }
-
-      const currentStok = parseFloat(item.stok?.toString() || '0');
-      const needed = parseFloat(detail.jumlah?.toString() || '0');
-
-      console.log(`  - ${item.nama_produk}: stock=${currentStok}, needed=${needed}`);
-
-      if (currentStok < needed) {
-        throw new Error(
-          `❌ Stock ${item.nama_produk} tidak mencukupi!\n` +
-          `Tersedia: ${currentStok} | Dibutuhkan: ${needed}`
-        );
-      }
-    }
-
-    console.log('✅ Stock validation passed');
-
-    // ✅ Step 3: Update status to 'posted'
-    const { error: updateStatusError } = await supabase
-      .from('transaksi_produksi')
-      .update({ 
-        status: 'posted',
+    // ✅ Update pembelian to 'billed' status FIRST (prevent race condition)
+    const { error: updateError } = await supabase
+      .from('transaksi_pembelian')
+      .update({
+        total: subtotal,
+        biaya_kirim: biaya_kirim,
+        uang_muka: uang_muka,
+        rekening_bayar: rekening_bayar,
+        status: 'billed',
+        status_pembayaran: uang_muka >= finalTotal ? 'Lunas' : (uang_muka > 0 ? 'Cicil' : 'Belum Lunas'),
         updated_at: new Date().toISOString()
       })
-      .eq('id', produksiId);
+      .eq('id', parseInt(pembelian_id));
 
-    if (updateStatusError) throw updateStatusError;
+    if (updateError) throw updateError;
 
-    console.log('✅ Status updated to posted');
+    console.log('✅ Pembelian status updated to billed');
 
-    // ✅ Step 4: Proses pengurangan bahan baku
-    for (const detail of details) {
-      if (!detail.item_id) continue;
+    // ✅ CRITICAL: Check if stock already recorded
+    const { data: stockCheck } = await supabase
+      .from('stock_barang')
+      .select('id')
+      .eq('keterangan', `Pembelian #${pembelian_id}`)
+      .limit(1);
 
-      // Get current stock
-      const { data: item, error: getItemError } = await supabase
-        .from('produk')
-        .select('stok, nama_produk')
-        .eq('id', detail.item_id)
-        .single();
+    const stockAlreadyRecorded = stockCheck && stockCheck.length > 0;
 
-      if (getItemError) throw getItemError;
+    if (stockAlreadyRecorded) {
+      console.log('⚠️ Stock already recorded for this pembelian, skipping stock insert');
+    } else {
+      // Insert stock movement
+      if (detail_pembelian && detail_pembelian.length > 0) {
+        const cabangId = pembelian.cabang_id || pembelian.cabang?.id;
 
-      const currentStok = parseFloat(item.stok?.toString() || '0');
-      const jumlahKeluar = parseFloat(detail.jumlah?.toString() || '0');
-      const newStok = currentStok - jumlahKeluar;
+        if (!cabangId) {
+          console.warn('Warning: cabang_id tidak ditemukan, skip stock insert');
+        } else {
+          for (const item of detail_pembelian) {
+            if (!item) continue;
 
-      console.log(`  📉 ${item.nama_produk}: ${currentStok} - ${jumlahKeluar} = ${newStok}`);
+            console.log(`  📦 Recording stock: Produk ${item.produk_id}, Qty: ${item.jumlah}`);
 
-      // Update stock bahan baku
-      const { error: updateStokError } = await supabase
-        .from('produk')
-        .update({ 
-          stok: newStok,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', detail.item_id);
+            // ✅ Get current stock
+            const { data: produkData, error: produkGetError } = await supabase
+              .from('produk')
+              .select('stok, hpp')
+              .eq('id', item.produk_id)
+              .single();
 
-      if (updateStokError) {
-        console.error('❌ Failed to update stock for item:', detail.item_id);
-        throw updateStokError;
-      }
+            if (produkGetError) {
+              console.error('Error getting produk:', produkGetError);
+              continue;
+            }
 
-      // ✅ PENTING: Insert history SEKALI SAJA (keluar)
-      const { error: historyError } = await supabase
-        .from('stock_barang')
-        .insert({
-          produk_id: detail.item_id,
-          cabang_id: produksiData.cabang_id,
-          jumlah: jumlahKeluar,
-          tanggal: produksiData.tanggal,
-          tipe: 'keluar',
-          keterangan: `Produksi ID: ${id} (Bahan Baku)`,
-          hpp: parseFloat(detail.hpp?.toString() || '0')
-        });
+            const currentStok = Number(produkData?.stok || 0);
+            const newStok = currentStok + Number(item.jumlah);
 
-      if (historyError) {
-        console.error('⚠️ Warning: Failed to record history (keluar):', historyError);
-        // Don't throw, continue process
+            // ✅ Update stock di tabel produk
+            const { error: produkUpdateError } = await supabase
+              .from('produk')
+              .update({
+                stok: newStok,
+                hpp: Number(item.harga),
+                harga: Number(item.harga),
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', item.produk_id);
+
+            if (produkUpdateError) {
+              console.error('Error updating produk stock:', produkUpdateError);
+              throw produkUpdateError;
+            }
+
+            console.log(`    ✅ Stock updated: ${currentStok} + ${item.jumlah} = ${newStok}`);
+
+            // ✅ Insert ke stock_barang (ONLY ONCE!)
+            const { error: stockInsertError } = await supabase
+              .from('stock_barang')
+              .insert({
+                produk_id: item.produk_id,
+                cabang_id: cabangId,
+                jumlah: Number(item.jumlah),
+                tanggal: pembelian.tanggal,
+                tipe: 'masuk',
+                hpp: Number(item.harga),
+                keterangan: `Pembelian #${pembelian_id}`  // ← Unique identifier
+              });
+
+            if (stockInsertError) {
+              console.error('Error inserting stock_barang:', stockInsertError);
+              throw stockInsertError;
+            }
+
+            console.log(`    ✅ History recorded`);
+          }
+        }
       }
     }
 
-    console.log('✅ All materials deducted successfully');
+    // Handle uang muka
+    if (uang_muka > 0) {
+      // ✅ Check if uang_muka already recorded
+      const { data: cicilanCheck } = await supabase
+        .from('cicilan_pembelian')
+        .select('id')
+        .eq('pembelian_id', parseInt(pembelian_id))
+        .eq('type', 'uang_muka')
+        .limit(1);
 
-    // ✅ Step 5: Tambah stock hasil produksi
-    const { data: produkHasil, error: getProdukHasilError } = await supabase
-      .from('produk')
-      .select('id, nama_produk, stok')
-      .eq('id', produksiData.produk_id)
+      const uangMukaAlreadyRecorded = cicilanCheck && cicilanCheck.length > 0;
+
+      if (!uangMukaAlreadyRecorded) {
+        // Insert cicilan
+        const { error: cicilanError } = await supabase
+          .from('cicilan_pembelian')
+          .insert({
+            pembelian_id: parseInt(pembelian_id),
+            tanggal_cicilan: pembelian.tanggal,
+            jumlah_cicilan: uang_muka,
+            rekening: rekening_bayar,
+            type: 'uang_muka',
+            keterangan: 'Uang Muka Awal'
+          });
+
+        if (cicilanError) {
+          console.error('Error inserting cicilan:', cicilanError);
+          throw cicilanError;
+        }
+
+        // Update kas
+        if (rekening_bayar) {
+          const { data: kasData, error: kasGetError } = await supabase
+            .from('kas')
+            .select('*')
+            .eq('nama_kas', rekening_bayar)
+            .single();
+
+          if (kasGetError) {
+            console.error('Error getting kas:', kasGetError);
+          } else if (kasData) {
+            const kasSaldo = parseFloat(kasData.saldo.toString());
+            const newSaldo = kasSaldo - uang_muka;
+
+            // Update kas saldo
+            const { error: kasUpdateError } = await supabase
+              .from('kas')
+              .update({
+                saldo: newSaldo,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', kasData.id);
+
+            if (kasUpdateError) {
+              console.error('Error updating kas:', kasUpdateError);
+            } else {
+              // Insert transaksi kas
+              await supabase
+                .from('transaksi_kas')
+                .insert({
+                  kas_id: kasData.id,
+                  tanggal_transaksi: pembelian.tanggal,
+                  debit: uang_muka,
+                  kredit: 0,
+                  keterangan: `Uang Muka Pembelian (Nota: ${pembelian.nota_supplier})`
+                });
+
+              console.log(`✅ Kas updated: ${kasSaldo} - ${uang_muka} = ${newSaldo}`);
+            }
+          }
+        }
+      } else {
+        console.log('⚠️ Uang muka already recorded, skipping');
+      }
+    }
+
+    // Create or update hutang_pembelian
+    const totalHutang = finalTotal;
+    const sisa = Math.max(0, totalHutang - uang_muka);
+
+    const { data: existingHutang } = await supabase
+      .from('hutang_pembelian')
+      .select('*')
+      .eq('pembelian_id', parseInt(pembelian_id))
+      .limit(1);
+
+    if (existingHutang && existingHutang.length > 0) {
+      await supabase
+        .from('hutang_pembelian')
+        .update({
+          total_hutang: totalHutang,
+          dibayar: uang_muka,
+          sisa: sisa,
+          status: sisa <= 0 ? 'lunas' : 'belum_lunas',
+          updated_at: new Date().toISOString()
+        })
+        .eq('pembelian_id', parseInt(pembelian_id));
+    } else {
+      await supabase
+        .from('hutang_pembelian')
+        .insert({
+          pembelian_id: parseInt(pembelian_id),
+          suplier_id: body.suplier_id || pembelian.suplier_id,
+          total_hutang: totalHutang,
+          dibayar: uang_muka,
+          sisa: sisa,
+          status: sisa <= 0 ? 'lunas' : 'belum_lunas'
+        });
+    }
+
+    console.log('✅ Billing completed successfully!');
+
+    // Return updated data
+    const { data: updatedPembelian } = await supabase
+      .from('transaksi_pembelian')
+      .select(`
+        *,
+        suplier:suplier_id (
+          id,
+          nama
+        ),
+        cabang:cabang_id (
+          id,
+          nama_cabang
+        )
+      `)
+      .eq('id', parseInt(pembelian_id))
       .single();
-
-    if (getProdukHasilError) throw getProdukHasilError;
-
-    if (produkHasil) {
-      const currentStokHasil = parseFloat(produkHasil.stok?.toString() || '0');
-      const jumlahMasuk = parseFloat(produksiData.jumlah?.toString() || '0');
-      const newStokHasil = currentStokHasil + jumlahMasuk;
-
-      console.log(`  📈 ${produkHasil.nama_produk}: ${currentStokHasil} + ${jumlahMasuk} = ${newStokHasil}`);
-
-      // Update stock hasil
-      const { error: updateHasilError } = await supabase
-        .from('produk')
-        .update({ 
-          stok: newStokHasil,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', produksiData.produk_id);
-
-      if (updateHasilError) throw updateHasilError;
-
-      // Hitung HPP per unit
-     const totalHPP = details.reduce(
-  (sum: number, d: any) => sum + parseFloat(d.subtotal?.toString() || '0'),
-  0
-);
-      const hppPerUnit = jumlahMasuk > 0 ? totalHPP / jumlahMasuk : 0;
-
-      console.log(`  💰 HPP: Total=${totalHPP} / Qty=${jumlahMasuk} = ${hppPerUnit} per unit`);
-
-      // ✅ PENTING: Insert history SEKALI SAJA (masuk)
-      const { error: historyMasukError } = await supabase
-        .from('stock_barang')
-        .insert({
-          produk_id: produksiData.produk_id,
-          cabang_id: produksiData.cabang_id,
-          jumlah: jumlahMasuk,
-          tanggal: produksiData.tanggal,
-          tipe: 'masuk',
-          keterangan: `Hasil Produksi ID: ${id}`,
-          hpp: hppPerUnit
-        });
-
-      if (historyMasukError) {
-        console.error('⚠️ Warning: Failed to record history (masuk):', historyMasukError);
-        // Don't throw, continue process
-      }
-
-      // Update HPP produk hasil
-      const { error: updateHPPError } = await supabase
-        .from('produk')
-        .update({ 
-          hpp: hppPerUnit,
-          harga: hppPerUnit,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', produksiData.produk_id);
-
-      if (updateHPPError) {
-        console.error('⚠️ Warning: Failed to update HPP:', updateHPPError);
-        // Don't throw, process is still successful
-      }
-
-      console.log('✅ Production posted successfully!');
-    }
 
     return NextResponse.json({
       success: true,
-      message: 'Produksi berhasil diposting dan stock telah diupdate',
-      data: {
-        produksi_id: produksiId,
-        status: 'posted',
-        bahan_digunakan: details.length,
-        hasil_produksi: produksiData.jumlah + ' ' + produksiData.satuan
-      }
+      message: 'Billing berhasil, stock masuk telah dicatat',
+      pembelian: updatedPembelian,
+      subtotal,
+      finalTotal,
+      uang_muka,
+      biaya_kirim,
+      tagihan: Math.max(0, finalTotal - uang_muka)
     });
 
   } catch (error: any) {
-    console.error('❌ Error posting production:', error);
-    
-    // Attempt rollback status if possible
-    try {
-      const { id } = await params;
-      const supabase = await supabaseServer();
-      
-      await supabase
-        .from('transaksi_produksi')
-        .update({ status: 'pending' })
-        .eq('id', parseInt(id));
-      
-      console.log('🔄 Status rolled back to pending');
-    } catch (rollbackError) {
-      console.error('⚠️ Failed to rollback status:', rollbackError);
-    }
-
-    return NextResponse.json({
-      success: false,
-      error: error.message || 'Terjadi kesalahan saat posting produksi'
-    }, { status: 500 });
+    console.error('❌ Error billing pembelian:', error);
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
   }
 }
