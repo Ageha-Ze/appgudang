@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabaseServer';
 
 /**
- * GET - Fetch stock overview (aggregated per produk & cabang)
+ * ✅ FIXED: GET - Fetch stock overview
+ * Stock diambil langsung dari produk.stok (single source of truth)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -17,128 +18,82 @@ export async function GET(request: NextRequest) {
 
     const offset = (page - 1) * limit;
 
-    // Get all stock movements and calculate current stock per produk-cabang
+    console.log('📊 Fetching stock with params:', { page, limit, search, cabang_id });
+
+    // ✅ Query langsung dari produk table
     let query = supabase
-      .from('stock_barang')
-      .select(`
-        id,
-        produk_id,
-        cabang_id,
-        jumlah,
-        tipe,
-        hpp,
-        harga_jual,
-        persentase,
-        produk:produk_id (
-          id,
-          nama_produk,
-          kode_produk,
-          satuan,
-          stok
-        ),
-        cabang:cabang_id (
-          id,
-          nama_cabang
-        )
-      `);
-
-    if (cabang_id > 0) {
-      query = query.eq('cabang_id', cabang_id);
-    }
-
-    const { data: movements, error } = await query;
-
-    if (error) throw error;
-
-    // Group by produk_id + cabang_id
-    const grouped = new Map<string, any>();
-
-    movements?.forEach((item: any) => {
-      const key = `${item.produk_id}-${item.cabang_id}`;
-      
-      if (!grouped.has(key)) {
-        grouped.set(key, {
-          produk_id: item.produk_id,
-          nama_produk: item.produk?.nama_produk || '-',
-          kode_produk: item.produk?.kode_produk || '-',
-          satuan: item.produk?.satuan || 'Kg',
-          cabang_id: item.cabang_id,
-          cabang: item.cabang?.nama_cabang || '-',
-          stock: 0,
-          stock_masuk: 0,
-          stock_keluar: 0,
-          hpp: item.hpp || 0,
-          harga_jual: item.harga_jual || 0,
-          margin: item.persentase || 0,
-          latest_date: item.tanggal || '',
-          has_negative: false, // 🆕 Flag untuk detect minus
-        });
-      }
-
-      const group = grouped.get(key);
-      const jumlah = parseFloat(item.jumlah?.toString() || '0');
-
-      // Calculate running stock
-      if (item.tipe === 'masuk') {
-        group.stock += jumlah;
-        group.stock_masuk += jumlah;
-      } else if (item.tipe === 'keluar') {
-        group.stock -= jumlah;
-        group.stock_keluar += jumlah;
-      }
-
-      // 🆕 Check if stock went negative at any point
-      if (group.stock < 0) {
-        group.has_negative = true;
-      }
-
-      // Keep latest price
-      if (!group.latest_date || item.tanggal >= group.latest_date) {
-        group.hpp = item.hpp || group.hpp;
-        group.harga_jual = item.harga_jual || group.harga_jual;
-        group.margin = item.persentase || group.margin;
-        group.latest_date = item.tanggal;
-      }
-    });
-
-    let formattedData = Array.from(grouped.values()).map((item: any) => ({
-      produk_id: item.produk_id,
-      nama_produk: item.nama_produk,
-      kode_produk: item.kode_produk,
-      satuan: item.satuan,
-      cabang_id: item.cabang_id,
-      cabang: item.cabang,
-      stock: item.stock,
-      stock_masuk: item.stock_masuk, // 🆕 Detail masuk
-      stock_keluar: item.stock_keluar, // 🆕 Detail keluar
-      hpp: item.hpp,
-      harga_jual: item.harga_jual,
-      margin: item.margin,
-      has_negative: item.has_negative, // 🆕 Flag warning
-    }));
+      .from('produk')
+      .select('id, nama_produk, kode_produk, satuan, stok, hpp, harga', { count: 'exact' });
 
     // Search filter
     if (search) {
-      const searchLower = search.toLowerCase();
-      formattedData = formattedData.filter((item: any) =>
-        item.nama_produk?.toLowerCase().includes(searchLower) ||
-        item.kode_produk?.toLowerCase().includes(searchLower) ||
-        item.cabang?.toLowerCase().includes(searchLower)
-      );
+      query = query.or(`nama_produk.ilike.%${search}%,kode_produk.ilike.%${search}%`);
     }
 
-    // Sort by nama_produk
-    formattedData.sort((a: any, b: any) =>
-      (a.nama_produk || '').localeCompare(b.nama_produk || '')
-    );
+    const { data: products, error, count } = await query
+      .order('nama_produk')
+      .range(offset, offset + limit - 1);
 
-    const totalRecords = formattedData.length;
+    if (error) throw error;
+
+    // Ambil history summary per produk (untuk info tambahan)
+    const produkIds = products?.map(p => p.id) || [];
+    
+    let historyQuery = supabase
+      .from('stock_barang')
+      .select('produk_id, jumlah, tipe, cabang_id');
+
+    if (produkIds.length > 0) {
+      historyQuery = historyQuery.in('produk_id', produkIds);
+    }
+
+    if (cabang_id > 0) {
+      historyQuery = historyQuery.eq('cabang_id', cabang_id);
+    }
+
+    const { data: histories } = await historyQuery;
+
+    // Group history by produk_id
+    const historyMap = new Map<number, { masuk: number; keluar: number }>();
+    
+    histories?.forEach(h => {
+      if (!historyMap.has(h.produk_id)) {
+        historyMap.set(h.produk_id, { masuk: 0, keluar: 0 });
+      }
+      const summary = historyMap.get(h.produk_id)!;
+      const jumlah = parseFloat(h.jumlah?.toString() || '0');
+      
+      if (h.tipe === 'masuk') summary.masuk += jumlah;
+      if (h.tipe === 'keluar') summary.keluar += jumlah;
+    });
+
+    // Format data dengan stock dari produk.stok
+    const formattedData = products?.map(p => {
+      const history = historyMap.get(p.id) || { masuk: 0, keluar: 0 };
+      const stock = parseFloat(p.stok?.toString() || '0');
+
+      return {
+        produk_id: p.id,
+        nama_produk: p.nama_produk,
+        kode_produk: p.kode_produk,
+        satuan: p.satuan || 'Kg',
+        stock: stock, // ✅ Langsung dari produk.stok
+        stock_masuk: history.masuk,
+        stock_keluar: history.keluar,
+        hpp: p.hpp || 0,
+        harga_jual: p.harga || 0,
+        has_negative: stock < 0, // ✅ Flag warning
+      };
+    }) || [];
+
+    const totalRecords = count || 0;
     const totalPages = Math.ceil(totalRecords / limit);
-    const paginatedData = formattedData.slice(offset, offset + limit);
+
+    console.log(`✅ Returned ${formattedData.length} products`);
 
     return NextResponse.json({
       success: true,
-      data: paginatedData,
+      data: formattedData,
       pagination: {
         page,
         limit,
@@ -156,7 +111,8 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST - Add/Remove stock (Manual Entry)
+ * ✅ FIXED: POST - Add/Remove stock (Manual Entry)
+ * Pastikan tidak ada double recording
  */
 export async function POST(request: NextRequest) {
   try {
@@ -173,6 +129,8 @@ export async function POST(request: NextRequest) {
       persentase_harga_jual,
       keterangan,
     } = body;
+
+    console.log('📝 Manual stock entry:', { produk_id, cabang_id, jumlah, tipe });
 
     // Validation
     if (!produk_id || !cabang_id || !jumlah || !tipe) {
@@ -211,8 +169,11 @@ export async function POST(request: NextRequest) {
     let newStock = currentStock;
     if (tipe === 'masuk') {
       newStock += jumlahFloat;
+      console.log(`  📈 Stock masuk: ${currentStock} + ${jumlahFloat} = ${newStock}`);
     } else {
       newStock -= jumlahFloat;
+      console.log(`  📉 Stock keluar: ${currentStock} - ${jumlahFloat} = ${newStock}`);
+      
       // Validation: check if stock is sufficient
       if (newStock < 0) {
         return NextResponse.json(
@@ -226,7 +187,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Insert into stock_barang
+    // ✅ Step 1: Update produk.stok DULU
+    const updateData: any = { stok: newStock };
+
+    // Update HPP if stock masuk
+    if (hpp && tipe === 'masuk') {
+      updateData.hpp = hpp;
+      updateData.harga = hpp;
+    }
+
+    const { error: updateError } = await supabase
+      .from('produk')
+      .update(updateData)
+      .eq('id', produk_id);
+
+    if (updateError) {
+      console.error('❌ Failed to update produk.stok:', updateError);
+      throw updateError;
+    }
+
+    console.log('✅ Stock updated in produk table');
+
+    // ✅ Step 2: Insert history SETELAH update berhasil
     const { data: stockData, error: insertError } = await supabase
       .from('stock_barang')
       .insert({
@@ -243,23 +225,19 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (insertError) throw insertError;
-
-    // Update produk.stok
-    const updateData: any = { stok: newStock };
-
-    // Update HPP if stock masuk
-    if (hpp && tipe === 'masuk') {
-      updateData.hpp = hpp;
-      updateData.harga = hpp;
+    if (insertError) {
+      console.error('⚠️ Warning: Failed to record history, rolling back stock...');
+      
+      // ✅ Rollback produk.stok jika insert history gagal
+      await supabase
+        .from('produk')
+        .update({ stok: currentStock })
+        .eq('id', produk_id);
+      
+      throw insertError;
     }
 
-    const { error: updateError } = await supabase
-      .from('produk')
-      .update(updateData)
-      .eq('id', produk_id);
-
-    if (updateError) throw updateError;
+    console.log('✅ History recorded successfully');
 
     return NextResponse.json({
       success: true,
