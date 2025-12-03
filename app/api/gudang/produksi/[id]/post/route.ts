@@ -4,132 +4,255 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabaseServer';
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(
+  request: NextRequest, 
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id } = await params;
     const supabase = await supabaseServer();
+    const produksiId = parseInt(id);
 
-    // 1. Get data produksi
-    const { data: produksi, error: produksiError } = await supabase
+    console.log('🔄 Posting produksi ID:', produksiId);
+
+    // ✅ Step 1: Get produksi with details
+    const { data: produksiData, error: getProduksiError } = await supabase
       .from('transaksi_produksi')
-      .select('*, detail_produksi(*)')
-      .eq('id', parseInt(id))
+      .select(`
+        *,
+        detail_produksi (
+          id,
+          item_id,
+          jumlah,
+          hpp,
+          subtotal
+        )
+      `)
+      .eq('id', produksiId)
       .single();
 
-    if (produksiError) throw produksiError;
-    if (!produksi) {
-      return NextResponse.json({ error: 'Produksi tidak ditemukan' }, { status: 404 });
-    }
+    if (getProduksiError) throw getProduksiError;
+    if (!produksiData) throw new Error('Produksi tidak ditemukan');
 
-    // Validasi: Cek apakah sudah posted
-    if (produksi.status === 'posted') {
-      return NextResponse.json({ 
-        error: 'Produksi sudah diposting sebelumnya' 
+    console.log('📦 Data produksi:', produksiData);
+
+    // Check if already posted
+    if (produksiData.status === 'posted') {
+      return NextResponse.json({
+        error: 'Produksi sudah diposting sebelumnya'
       }, { status: 400 });
     }
 
-    // 2. Update status to 'posted'
-    const { error: updateError } = await supabase
-      .from('transaksi_produksi')
-      .update({ status: 'posted' })
-      .eq('id', parseInt(id));
+    const details = produksiData.detail_produksi || [];
 
-    if (updateError) throw updateError;
+    if (details.length === 0) {
+      return NextResponse.json({
+        error: 'Tidak ada detail produksi, tambahkan bahan baku terlebih dahulu'
+      }, { status: 400 });
+    }
 
-    // 3. Kurangi stock bahan baku (item yang digunakan)
-    for (const detail of produksi.detail_produksi || []) {
-      // Get current stock item
-      const { data: item } = await supabase
+    // ✅ Step 2: Validasi stock SEMUA bahan baku DULU
+    console.log('🔍 Validating stock for', details.length, 'items...');
+    
+    for (const detail of details) {
+      if (!detail.item_id) continue;
+
+              const { data: item, error: itemError } = await supabase
         .from('produk')
-        .select('stok')
+        .select('id, nama_produk, stok')
         .eq('id', detail.item_id)
         .single();
 
-      if (item) {
-        const newStok = parseFloat(item.stok) - parseFloat(detail.jumlah);
-        
-        // Validasi stock tidak negatif
-        if (newStok < 0) {
-          return NextResponse.json({ 
-            error: `Stock ${detail.item_id} tidak mencukupi! Tersedia: ${item.stok}, Dibutuhkan: ${detail.jumlah}` 
-          }, { status: 400 });
-        }
-        
-        // Update stock produk
-        await supabase
-          .from('produk')
-          .update({ stok: newStok })
-          .eq('id', detail.item_id);
+      if (itemError || !item) {
+        throw new Error(`❌ Item ID ${detail.item_id} tidak ditemukan atau sudah dihapus`);
+      }
 
-        // Insert stock movement (keluar)
-        await supabase
-          .from('stock_barang')
-          .insert({
-            produk_id: detail.item_id,
-            cabang_id: produksi.cabang_id,
-            jumlah: detail.jumlah,
-            tanggal: produksi.tanggal,
-            tipe: 'keluar',
-            keterangan: `Produksi: ${produksi.produk_id} - ${produksi.jumlah} ${produksi.satuan}`,
-            hpp: detail.hpp,
-          });
+      const currentStok = parseFloat(item.stok?.toString() || '0');
+      const needed = parseFloat(detail.jumlah?.toString() || '0');
+
+      console.log(`  - ${item.nama_produk}: stock=${currentStok}, needed=${needed}`);
+
+      if (currentStok < needed) {
+        throw new Error(
+          `❌ Stock ${item.nama_produk} tidak mencukupi!\n` +
+          `Tersedia: ${currentStok} | Dibutuhkan: ${needed}`
+        );
       }
     }
 
-    // 4. Tambah stock produk hasil produksi
-    const { data: produkHasil } = await supabase
-      .from('produk')
-      .select('stok')
-      .eq('id', produksi.produk_id)
-      .single();
+    console.log('✅ Stock validation passed');
 
-    if (produkHasil) {
-      const newStokHasil = parseFloat(produkHasil.stok) + parseFloat(produksi.jumlah);
-      
-      // Update stock produk hasil
-      await supabase
+    // ✅ Step 3: Update status to 'posted'
+    const { error: updateStatusError } = await supabase
+      .from('transaksi_produksi')
+      .update({ 
+        status: 'posted',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', produksiId);
+
+    if (updateStatusError) throw updateStatusError;
+
+    console.log('✅ Status updated to posted');
+
+    // ✅ Step 4: Proses pengurangan bahan baku
+    for (const detail of details) {
+      if (!detail.item_id) continue;
+
+      // Get current stock
+      const { data: item, error: getItemError } = await supabase
         .from('produk')
-        .update({ stok: newStokHasil })
-        .eq('id', produksi.produk_id);
+        .select('stok, nama_produk')
+        .eq('id', detail.item_id)
+        .single();
 
-      // Hitung total HPP dari komposisi
-      const totalHPP = produksi.detail_produksi?.reduce(
-        (sum: number, d: any) => sum + parseFloat(d.subtotal),
-        0
-      ) || 0;
+      if (getItemError) throw getItemError;
 
-      const hppPerUnit = totalHPP / parseFloat(produksi.jumlah);
+      const currentStok = parseFloat(item.stok?.toString() || '0');
+      const jumlahKeluar = parseFloat(detail.jumlah?.toString() || '0');
+      const newStok = currentStok - jumlahKeluar;
 
-      // Insert stock movement (masuk) untuk hasil produksi
-      await supabase
+      console.log(`  📉 ${item.nama_produk}: ${currentStok} - ${jumlahKeluar} = ${newStok}`);
+
+      // Update stock bahan baku
+      const { error: updateStokError } = await supabase
+        .from('produk')
+        .update({ 
+          stok: newStok,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', detail.item_id);
+
+      if (updateStokError) {
+        console.error('❌ Failed to update stock for item:', detail.item_id);
+        throw updateStokError;
+      }
+
+      // ✅ PENTING: Insert history SEKALI SAJA (keluar)
+      const { error: historyError } = await supabase
         .from('stock_barang')
         .insert({
-          produk_id: produksi.produk_id,
-          cabang_id: produksi.cabang_id,
-          jumlah: produksi.jumlah,
-          tanggal: produksi.tanggal,
-          tipe: 'masuk',
-          keterangan: `Hasil Produksi - ID: ${id}`,
-          hpp: hppPerUnit,
+          produk_id: detail.item_id,
+          cabang_id: produksiData.cabang_id,
+          jumlah: jumlahKeluar,
+          tanggal: produksiData.tanggal,
+          tipe: 'keluar',
+          keterangan: `Produksi ID: ${id} (Bahan Baku)`,
+          hpp: parseFloat(detail.hpp?.toString() || '0')
         });
 
+      if (historyError) {
+        console.error('⚠️ Warning: Failed to record history (keluar):', historyError);
+        // Don't throw, continue process
+      }
+    }
+
+    console.log('✅ All materials deducted successfully');
+
+    // ✅ Step 5: Tambah stock hasil produksi
+    const { data: produkHasil, error: getProdukHasilError } = await supabase
+      .from('produk')
+      .select('id, nama_produk, stok')
+      .eq('id', produksiData.produk_id)
+      .single();
+
+    if (getProdukHasilError) throw getProdukHasilError;
+
+    if (produkHasil) {
+      const currentStokHasil = parseFloat(produkHasil.stok?.toString() || '0');
+      const jumlahMasuk = parseFloat(produksiData.jumlah?.toString() || '0');
+      const newStokHasil = currentStokHasil + jumlahMasuk;
+
+      console.log(`  📈 ${produkHasil.nama_produk}: ${currentStokHasil} + ${jumlahMasuk} = ${newStokHasil}`);
+
+      // Update stock hasil
+      const { error: updateHasilError } = await supabase
+        .from('produk')
+        .update({ 
+          stok: newStokHasil,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', produksiData.produk_id);
+
+      if (updateHasilError) throw updateHasilError;
+
+      // Hitung HPP per unit
+      const totalHPP = details.reduce(
+        (sum, d) => sum + parseFloat(d.subtotal?.toString() || '0'),
+        0
+      );
+      const hppPerUnit = jumlahMasuk > 0 ? totalHPP / jumlahMasuk : 0;
+
+      console.log(`  💰 HPP: Total=${totalHPP} / Qty=${jumlahMasuk} = ${hppPerUnit} per unit`);
+
+      // ✅ PENTING: Insert history SEKALI SAJA (masuk)
+      const { error: historyMasukError } = await supabase
+        .from('stock_barang')
+        .insert({
+          produk_id: produksiData.produk_id,
+          cabang_id: produksiData.cabang_id,
+          jumlah: jumlahMasuk,
+          tanggal: produksiData.tanggal,
+          tipe: 'masuk',
+          keterangan: `Hasil Produksi ID: ${id}`,
+          hpp: hppPerUnit
+        });
+
+      if (historyMasukError) {
+        console.error('⚠️ Warning: Failed to record history (masuk):', historyMasukError);
+        // Don't throw, continue process
+      }
+
       // Update HPP produk hasil
-      await supabase
+      const { error: updateHPPError } = await supabase
         .from('produk')
         .update({ 
           hpp: hppPerUnit,
-          harga: hppPerUnit 
+          harga: hppPerUnit,
+          updated_at: new Date().toISOString()
         })
-        .eq('id', produksi.produk_id);
+        .eq('id', produksiData.produk_id);
+
+      if (updateHPPError) {
+        console.error('⚠️ Warning: Failed to update HPP:', updateHPPError);
+        // Don't throw, process is still successful
+      }
+
+      console.log('✅ Production posted successfully!');
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      message: 'Produksi berhasil diposting',
-      data: produksi 
+      message: 'Produksi berhasil diposting dan stock telah diupdate',
+      data: {
+        produksi_id: produksiId,
+        status: 'posted',
+        bahan_digunakan: details.length,
+        hasil_produksi: produksiData.jumlah + ' ' + produksiData.satuan
+      }
     });
+
   } catch (error: any) {
-    console.error('Error posting production:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('❌ Error posting production:', error);
+    
+    // Attempt rollback status if possible
+    try {
+      const { id } = await params;
+      const supabase = await supabaseServer();
+      
+      await supabase
+        .from('transaksi_produksi')
+        .update({ status: 'pending' })
+        .eq('id', parseInt(id));
+      
+      console.log('🔄 Status rolled back to pending');
+    } catch (rollbackError) {
+      console.error('⚠️ Failed to rollback status:', rollbackError);
+    }
+
+    return NextResponse.json({
+      success: false,
+      error: error.message || 'Terjadi kesalahan saat posting produksi'
+    }, { status: 500 });
   }
 }
