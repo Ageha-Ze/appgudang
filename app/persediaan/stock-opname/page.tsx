@@ -241,8 +241,8 @@ export default function StockOpnamePage() {
         {/* Content */}
         <div className="p-6">
           {/* Filters */}
-          <div className="mb-6 flex justify-between items-center gap-4">
-            <div className="flex gap-2">
+          <div className="mb-6 space-y-4">
+            <div className="flex flex-wrap gap-2">
               {['all', 'pending', 'approved', 'rejected'].map((status) => (
                 <button
                   key={status}
@@ -260,30 +260,37 @@ export default function StockOpnamePage() {
                 </button>
               ))}
             </div>
-            <div className="relative w-80">
-              <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Cari nama, kode, gudang, status..."
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none transition-all duration-200 shadow-sm hover:shadow-md"
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-              />
-              {search && (
-                <button
-                  onClick={() => {
-                    setSearch('');
-                    setPage(1);
-                  }}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  title="Clear search"
-                >
-                  ✕
-                </button>
-              )}
+
+            {/* Search */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-2 flex-1 sm:flex-none min-w-0">
+                <label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">Search:</label>
+                <div className="relative flex-1 sm:max-w-xs">
+                  <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari nama, kode..."
+                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none transition-all duration-200 shadow-sm hover:shadow-md"
+                    value={search}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setPage(1);
+                    }}
+                  />
+                  {search && (
+                    <button
+                      onClick={() => {
+                        setSearch('');
+                        setPage(1);
+                      }}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      title="Clear search"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 

@@ -82,15 +82,15 @@ const menuItems: MenuItem[] = [
     id: 'laporan',
     name: 'Report',
     icon: FileText,
-    submenu: [
-      { id: 'laporan-pembelian', name: 'Purchasing', icon: FileText, href: '/laporan/pembelian' },
-      { id: 'laporan-penjualan', name: 'Selling', icon: FileText, href: '/laporan/penjualan' },
-      { id: 'laporan-hutang', name: 'Payable', icon: FileText, href: '/laporan/hutang' },
-      { id: 'laporan-piutang', name: 'Receivable', icon: FileText, href: '/laporan/piutang' },
-      { id: 'laporan-sales', name: 'Sales', icon: FileText, href: '/laporan/sales' },
-      { id: 'laporan-movement', name: 'Stock Movement (FIFO)', icon: Package, href: '/laporan/laporan-movement' },
-      { id: 'laporan-laba-rugi', name: 'Financial Analysis', icon: FileText, href: '/laporan/laba-rugi' },
-    ],
+        submenu: [
+          { id: 'laporan-pembelian', name: 'Purchasing', icon: FileText, href: '/laporan/pembelian' },
+          { id: 'laporan-penjualan', name: 'Selling', icon: FileText, href: '/laporan/penjualan' },
+          { id: 'laporan-hutang', name: 'Payable', icon: FileText, href: '/laporan/hutang' },
+          { id: 'laporan-piutang', name: 'Receivable', icon: FileText, href: '/laporan/piutang' },
+          { id: 'laporan-movement', name: 'Stock Movement (FIFO)', icon: Package, href: '/laporan/laporan-movement' },
+          { id: 'laporan-sales', name: 'Sales by Employee', icon: Users, href: '/laporan/sales' },
+          { id: 'laporan-laba-rugi', name: 'Financial Analysis', icon: FileText, href: '/laporan/laba-rugi' },
+        ],
   },
 ];
 

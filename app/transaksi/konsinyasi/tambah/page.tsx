@@ -543,18 +543,18 @@ export default function TambahKonsinyasiPage() {
           </div>
         )}
 
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <button
             onClick={handleSubmit}
             disabled={loading || detailItems.length === 0}
-            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 whitespace-nowrap"
           >
             <Save size={20} />
             {loading ? 'Menyimpan...' : 'Simpan Konsinyasi'}
           </button>
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition whitespace-nowrap"
           >
             <X size={20} />
             Batal
