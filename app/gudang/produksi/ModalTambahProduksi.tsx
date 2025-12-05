@@ -48,8 +48,10 @@ export default function ModalTambahProduksi({ isOpen, onClose, onSuccess }: Moda
   useEffect(() => {
     if (form.cabang_id) {
       fetchProduks(form.cabang_id);
+      fetchPegawaisByCabang(form.cabang_id); // Filter pegawai by cabang
     } else {
       setProduks([]); // Clear products when no cabang selected
+      setPegawais([]); // Clear pegawai when no cabang selected
     }
   }, [form.cabang_id]);
 
@@ -99,6 +101,21 @@ export default function ModalTambahProduksi({ isOpen, onClose, onSuccess }: Moda
       setPegawais(json.data || []);
     } catch (error) {
       console.error('Error fetching pegawai:', error);
+    }
+  };
+
+  const fetchPegawaisByCabang = async (cabangId: string) => {
+    if (!cabangId) {
+      setPegawais([]);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/master/pegawai?cabang_id=${cabangId}`);
+      const json = await res.json();
+      setPegawais(json.data || []);
+    } catch (error) {
+      console.error('Error fetching pegawai by cabang:', error);
+      setPegawais([]);
     }
   };
 

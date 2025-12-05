@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     let dataWithNotaAndTagihan = await Promise.all((allData || []).map(async (item) => {
       const tanggal = new Date(item.tanggal).toISOString().split('T')[0].replace(/-/g, '');
       const nomorUrut = String(item.id).padStart(7, '0');
-      
+
       const totalPenjualan = item.detail_penjualan?.reduce(
         (sum: number, detail: any) => sum + (detail.subtotal || 0),
         0
@@ -60,11 +60,15 @@ export async function GET(request: NextRequest) {
       const dibayar = parseFloat(item.dibayar || '0');
       const sisaTagihan = finalTotal - dibayar;
 
+      // Fix status_pembayaran: if not billed, should be 'Belum Lunas' regardless of database default
+      const statusPembayaran = item.status === 'billed' ? item.status_pembayaran : 'Belum Lunas';
+
       return {
         ...item,
         nota_penjualan: `${nomorUrut}${tanggal}`,
         total: totalPenjualan,
-        sisa_tagihan: sisaTagihan
+        sisa_tagihan: sisaTagihan,
+        status_pembayaran: statusPembayaran
       };
     }));
 
@@ -167,7 +171,7 @@ export async function POST(request: NextRequest) {
       dibayar: 0,
       jenis_pembayaran: jenisPembayaran,
       status: 'pending',
-      status_pembayaran: jenisPembayaran === 'tunai' ? 'Lunas' : 'Belum Lunas',
+      status_pembayaran: jenisPembayaran === 'tunai' ? 'Belum Lunas' : 'Belum Lunas', // Explicitly set for both cases
       keterangan: body.keterangan || ''
     };
 

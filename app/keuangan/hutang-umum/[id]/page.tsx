@@ -40,7 +40,61 @@ export default function DetailHutangPage({
       setLoading(true);
       const res = await fetch(`/api/keuangan/hutang-umum/${id}`);
       const json = await res.json();
-      setHutang(json.data);
+
+      // ✅ FIX: Recalculate dibayar from cicilan sum if data is corrupted
+      let hutangData = json.data;
+
+      if (hutangData) {
+        // Get actual cicilan sum
+        const cicilanRes = await fetch(`/api/keuangan/hutang-umum/${id}/cicilan`);
+        const cicilanJson = await cicilanRes.json();
+        const cicilanData = cicilanJson.data || [];
+        const actualDibayar = cicilanData.reduce(
+          (sum: number, c: any) => sum + Number(c.jumlah_cicilan || 0),
+          0
+        );
+
+        // Fix corrupted data
+        if (Number(hutangData.dibayar) !== actualDibayar) {
+          console.warn(`🔧 Fixing corrupted hutang data: dibayar ${hutangData.dibayar} → ${actualDibayar}`);
+
+          const correctedSisa = Math.max(0, Number(hutangData.nominal_total) - actualDibayar);
+
+          hutangData = {
+            ...hutangData,
+            dibayar: actualDibayar,
+            sisa: correctedSisa,
+            status: actualDibayar >= Number(hutangData.nominal_total) ? 'Lunas' : 'Belum Lunas'
+          };
+
+          // Update the database with corrected values
+          await fetch(`/api/keuangan/hutang-umum/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jenis_hutang: hutangData.jenis_hutang,
+              tanggal_transaksi: hutangData.tanggal_transaksi,
+              pihak: hutangData.pihak,
+              keterangan: hutangData.keterangan,
+              nominal_total: hutangData.nominal_total,
+              kas_id: hutangData.kas_id
+            })
+          });
+        }
+      }
+
+      setHutang(hutangData);
+
+      // ✅ Close modals if hutang becomes lunas after data correction
+      if (hutangData.status === 'Lunas') {
+        setShowModalCicilan(false);
+        setShowModalPelunasan(false);
+        setShowModalEdit(false);
+      } else if (showModalPelunasan) {
+        // Force re-render modal with corrected data only if still not lunas
+        setShowModalPelunasan(false);
+        setTimeout(() => setShowModalPelunasan(true), 100);
+      }
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -65,7 +119,7 @@ export default function DetailHutangPage({
     );
   }
 
-  const isLunas = hutang.status === 'lunas';
+  const isLunas = hutang.status === 'Lunas';
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-800">

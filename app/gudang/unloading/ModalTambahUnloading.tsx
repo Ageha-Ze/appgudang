@@ -97,8 +97,8 @@ export default function ModalTambahUnloading({
         p.is_jerigen === true && p.stok > 0
       ));
       
-      setProdukKiloanList(allProducts.filter((p: Produk) => 
-        p.is_jerigen === false && p.nama_produk.includes('Madu')
+      setProdukKiloanList(allProducts.filter((p: Produk) =>
+        p.is_jerigen === false
       ));
     } catch (error) {
       console.error('Error fetching produk:', error);

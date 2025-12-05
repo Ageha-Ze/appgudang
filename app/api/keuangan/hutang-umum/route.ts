@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         nominal_total: Number(nominal_total),
         dibayar: 0,
         sisa: Number(nominal_total),
-        status: 'belum_lunas',
+        status: 'Belum Lunas',
         kas_id: Number(kas_id),
       })
       .select()

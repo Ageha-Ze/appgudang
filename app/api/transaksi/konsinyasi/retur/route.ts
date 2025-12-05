@@ -27,6 +27,8 @@ export async function POST(request: NextRequest) {
     }
 
     // ✅ Get detail konsinyasi dengan parent data
+    console.log('🔍 Searching for detail_konsinyasi_id:', body.detail_konsinyasi_id, 'type:', typeof body.detail_konsinyasi_id);
+
     const { data: detail, error: detailError } = await supabase
       .from('detail_konsinyasi')
       .select(`
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest) {
           id,
           cabang_id,
           status,
-          tanggal_konsinyasi
+          tanggal_titip
         ),
         produk:produk_id (
           id,
@@ -46,10 +48,21 @@ export async function POST(request: NextRequest) {
       .eq('id', body.detail_konsinyasi_id)
       .single();
 
+    console.log('📋 Query result:', { detail: detail ? 'FOUND' : 'NOT FOUND', error: detailError });
+
     if (detailError || !detail) {
-      console.error('Error fetching detail:', detailError);
+      console.error('❌ Error fetching detail:', detailError);
+
+      // Let's also check if the record exists at all
+      const { data: allDetails } = await supabase
+        .from('detail_konsinyasi')
+        .select('id')
+        .limit(10);
+
+      console.log('📊 First 10 detail_konsinyasi IDs:', allDetails?.map(d => d.id));
+
       return NextResponse.json(
-        { error: 'Detail konsinyasi tidak ditemukan' },
+        { error: `Detail konsinyasi tidak ditemukan. ID: ${body.detail_konsinyasi_id}` },
         { status: 404 }
       );
     }

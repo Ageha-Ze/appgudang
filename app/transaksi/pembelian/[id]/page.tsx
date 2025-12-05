@@ -7,6 +7,7 @@ import ModalTambahBarang from '../ModalTambahBarang';
 import ModalBilling from '../ModalBilling';
 import ModalEditBarangPembelian from '../ModalEditBarangPembelian';
 import ModalCicil from '../ModalCicil';
+import ModalEditCicil from '../ModalEditCicil';
 import ModalPelunasan from '../ModalPelunasan';
 import ModalEditDataPembelian from '../ModalEditDataPembelian';
 import ModalEditUangMuka from '../ModalEditUangMuka';
@@ -69,7 +70,8 @@ export default function DetailPembelianPage({
   const [pembelian, setPembelian] = useState<PembelianData | null>(null);
   const [historyCicilan, setHistoryCicilan] = useState<CicilanItem[]>([]);
   const [loading, setLoading] = useState(true);
-  
+  const [showModalEditCicil, setShowModalEditCicil] = useState(false); // ✅ Tambah ini
+  const [selectedCicilan, setSelectedCicilan] = useState<CicilanItem | null>(null); // ✅ Tambah ini
   const [showModalBarang, setShowModalBarang] = useState(false);
   const [showModalBilling, setShowModalBilling] = useState(false);
   const [showModalEditBarang, setShowModalEditBarang] = useState(false);
@@ -136,6 +138,11 @@ export default function DetailPembelianPage({
       console.error('Error:', error);
       alert('Terjadi kesalahan');
     }
+  };
+
+   const handleEditCicilan = (cicilan: CicilanItem) => {
+    setSelectedCicilan(cicilan);
+    setShowModalEditCicil(true);
   };
 
   const handleBatal = async () => {
@@ -592,14 +599,12 @@ export default function DetailPembelianPage({
                         {!isLunas && item.type !== 'pelunasan' ? (
                           <>
                             <button
-                              onClick={() => {
-                                alert('Fitur edit cicilan akan segera dibuat');
-                              }}
-                              className="text-blue-600 hover:text-blue-800 transition p-1"
-                              title="Edit"
-                            >
-                              <Edit size={16} className="md:w-[18px] md:h-[18px]" />
-                            </button>
+                                  onClick={() => handleEditCicilan(item)}
+                                  className="text-blue-600 hover:text-blue-800 transition p-1"
+                                  title="Edit"
+                                >
+                                  <Edit size={16} className="md:w-[18px] md:h-[18px]" />
+                                </button>
                             <button
                               onClick={() => handleDeleteCicilan(item.id)}
                               className="text-red-600 hover:text-red-800 transition p-1"
@@ -670,7 +675,21 @@ export default function DetailPembelianPage({
       sisaTagihan={calculateTagihan()}
       cabangId={pembelian?.cabang_id}
     />
-
+    {/* ✅ Tambahkan Modal Edit Cicilan */}
+        {selectedCicilan && (
+          <ModalEditCicil
+            isOpen={showModalEditCicil}
+            onClose={() => {
+              setShowModalEditCicil(false);
+              setSelectedCicilan(null);
+            }}
+            onSuccess={fetchDetail}
+            pembelianId={parseInt(id)}
+            sisaTagihan={calculateTagihan()}
+            cabangId={pembelian?.cabang_id}
+            editingCicilan={selectedCicilan}
+          />
+        )}
     <ModalPelunasan
       isOpen={showModalLunas}
       onClose={() => setShowModalLunas(false)}

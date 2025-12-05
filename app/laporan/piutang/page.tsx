@@ -106,11 +106,11 @@ export default function LaporanPiutang() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'lunas':
+      case 'Lunas':
         return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'belum_lunas':
+      case 'Belum Lunas':
         return 'bg-amber-100 text-amber-700 border-amber-200';
-      case 'jatuh_tempo':
+      case 'Jatuh Tempo':
         return 'bg-rose-100 text-rose-700 border-rose-200';
       default:
         return 'bg-gray-100 text-gray-700 border-gray-200';
@@ -119,11 +119,11 @@ export default function LaporanPiutang() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'lunas':
+      case 'Lunas':
         return 'Lunas';
-      case 'belum_lunas':
+      case 'Belum Lunas':
         return 'Belum Lunas';
-      case 'jatuh_tempo':
+      case 'Jatuh Tempo':
         return 'Jatuh Tempo';
       default:
         return status;
@@ -199,9 +199,9 @@ export default function LaporanPiutang() {
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent appearance-none transition-all"
               >
                 <option value="semua">Semua Status</option>
-                <option value="belum_lunas">Belum Lunas</option>
-                <option value="lunas">Lunas</option>
-                <option value="jatuh_tempo">Jatuh Tempo</option>
+                <option value="Belum Lunas">Belum Lunas</option>
+                <option value="Lunas">Lunas</option>
+                <option value="Jatuh Tempo">Jatuh Tempo</option>
               </select>
             </div>
 

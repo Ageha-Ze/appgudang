@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get('search') || '';
     const jabatan = searchParams.get('jabatan') || '';
+    const cabangId = searchParams.get('cabang_id') || '';
 
     let query = supabase
       .from('pegawai')
@@ -38,6 +39,10 @@ export async function GET(request: NextRequest) {
 
     if (jabatan) {
       query = query.ilike('jabatan', `%${jabatan}%`);
+    }
+
+    if (cabangId) {
+      query = query.eq('cabang_id', parseInt(cabangId));
     }
 
     const { data, error } = await query;

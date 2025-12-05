@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         status,
         jatuh_tempo,
         suplier:suplier_id ( nama ),
-        transaksi_pembelian:transaksi_pembelian_id (
+        transaksi_pembelian:pembelian_id (
           cabang:cabang_id (
             nama_cabang
           )

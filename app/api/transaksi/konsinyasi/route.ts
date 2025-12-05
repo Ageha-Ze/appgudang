@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
         cabang_id: body.cabang_id,
         pegawai_id: body.pegawai_id || null,
         total_nilai_titip,
-        status: 'aktif',
+        status: 'Aktif',
         keterangan: body.keterangan || null,
       })
       .select()

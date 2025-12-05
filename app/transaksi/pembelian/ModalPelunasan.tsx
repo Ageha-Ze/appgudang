@@ -119,17 +119,13 @@ export default function ModalPelunasan({
     setLoading(true);
 
     try {
-      const res = await fetch(`/api/transaksi/pembelian/${pembelianId}/cicilan`, {
+      const res = await fetch(`/api/transaksi/pembelian/${pembelianId}/lunas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tanggal_cicilan: new Date().toISOString().split('T')[0],
-          jumlah_cicilan: nilaiPelunasan,
           rekening: formData.rekening,
-          type: 'pelunasan',
           nilai_diskon: formData.nilai_diskon,
-          kas_id: selectedKas?.id,
-          keterangan: formData.nilai_diskon > 0 
+          keterangan: formData.nilai_diskon > 0
             ? `Pelunasan dengan diskon Rp. ${formData.nilai_diskon.toLocaleString('id-ID')}`
             : 'Pelunasan',
         }),
@@ -143,7 +139,7 @@ export default function ModalPelunasan({
           rekening: '',
           nilai_diskon: 0,
         });
-        onSuccess(json?.pembelian);
+        onSuccess(); // Call onSuccess without parameters to trigger data refresh
         onClose();
       } else {
         alert('Gagal melunasi: ' + json.error);

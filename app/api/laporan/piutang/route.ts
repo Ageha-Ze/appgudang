@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
       .select('*')
       .order('created_at', { ascending: false });
 
-    // Filter berdasarkan status
-    if (status && status !== 'semua') {
+    // Filter berdasarkan status (exclude 'Jatuh Tempo' from DB query due to enum issues)
+    if (status && status !== 'semua' && status !== 'Jatuh Tempo') {
       query = query.eq('status', status);
     }
 
@@ -34,11 +34,98 @@ export async function GET(request: NextRequest) {
       query = query.lte('created_at', `${endDate}T23:59:59`);
     }
 
-    const { data: piutangData, error: piutangError } = await query;
+    let { data: piutangData, error: piutangError } = await query;
 
     if (piutangError) {
       console.error('Query error:', piutangError);
       throw piutangError;
+    }
+
+    console.log('Piutang data from database:', piutangData);
+    console.log('Piutang data count:', piutangData?.length || 0);
+
+    // 🔍 DEBUG: Check for penjualan transactions with hutang payment
+    const { data: penjualanHutang, error: penjualanError } = await supabase
+      .from('transaksi_penjualan')
+      .select('id, jenis_pembayaran, status, customer_id, total, dibayar, tanggal, jatuh_tempo')
+      .eq('jenis_pembayaran', 'hutang')
+      .eq('status', 'billed');
+
+    console.log('Penjualan with hutang payment:', penjualanHutang);
+    console.log('Penjualan hutang count:', penjualanHutang?.length || 0);
+
+    // 🔧 FIX: Create missing piutang records for existing credit sales
+    if (penjualanHutang && penjualanHutang.length > 0) {
+      console.log('🔧 Creating/updating piutang records for credit sales...');
+
+      // Delete existing piutang records to recalculate with correct logic
+      await supabase
+        .from('piutang_penjualan')
+        .delete()
+        .in('penjualan_id', penjualanHutang.map(p => p.id));
+
+      for (const penjualan of penjualanHutang) {
+        // Check if piutang already exists
+        const { data: existingPiutang } = await supabase
+          .from('piutang_penjualan')
+          .select('id')
+          .eq('penjualan_id', penjualan.id)
+          .single();
+
+        if (!existingPiutang) {
+          // Check for existing cicilan payments
+          const { data: cicilanData, error: cicilanError } = await supabase
+            .from('cicilan_piutang_penjualan')
+            .select('jumlah_cicilan')
+            .eq('penjualan_id', penjualan.id);
+
+          // Include initial payment from penjualan.dibayar + any cicilan payments
+          const initialPayment = Number(penjualan.dibayar || 0);
+          const cicilanTotal = cicilanData?.reduce((sum, c) => sum + Number(c.jumlah_cicilan), 0) || 0;
+          const totalDibayar = initialPayment + cicilanTotal;
+          const sisa = Number(penjualan.total) - totalDibayar;
+          const status = sisa <= 0 ? 'Lunas' : 'Belum Lunas';
+
+          const { error: createError } = await supabase
+            .from('piutang_penjualan')
+            .insert({
+              penjualan_id: penjualan.id,
+              customer_id: penjualan.customer_id,
+              total_piutang: penjualan.total,
+              dibayar: totalDibayar,
+              sisa: sisa,
+              status: status,
+              jatuh_tempo: penjualan.jatuh_tempo
+            });
+
+          if (createError) {
+            console.error(`❌ Failed to create piutang for penjualan ${penjualan.id}:`, createError);
+          } else {
+            console.log(`✅ Created piutang for penjualan ${penjualan.id} (${status})`);
+          }
+        }
+      }
+
+      // Re-fetch piutang data with original filters applied
+      let reQuery = supabase
+        .from('piutang_penjualan')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      // Re-apply filters
+      if (status && status !== 'semua' && status !== 'Jatuh Tempo') {
+        reQuery = reQuery.eq('status', status);
+      }
+      if (startDate) {
+        reQuery = reQuery.gte('created_at', startDate);
+      }
+      if (endDate) {
+        reQuery = reQuery.lte('created_at', `${endDate}T23:59:59`);
+      }
+
+      const { data: updatedPiutangData } = await reQuery;
+      piutangData = updatedPiutangData;
+      console.log('Updated piutang data count:', piutangData?.length || 0);
     }
 
     // Ambil semua customer_id yang unik
@@ -71,9 +158,19 @@ export async function GET(request: NextRequest) {
       created_at: item.created_at
     })) || [];
 
+    // Filter by status (handle 'Jatuh Tempo' client-side)
+    if (status === 'Jatuh Tempo') {
+      formattedData = formattedData.filter(item => {
+        if (!item.jatuh_tempo) return false;
+        const today = new Date();
+        const dueDate = new Date(item.jatuh_tempo);
+        return dueDate < today && item.status !== 'Lunas';
+      });
+    }
+
     // Filter by search
     if (search && formattedData.length > 0) {
-      formattedData = formattedData.filter(item => 
+      formattedData = formattedData.filter(item =>
         item.customer_nama?.toLowerCase().includes(search.toLowerCase())
       );
     }
@@ -83,12 +180,12 @@ export async function GET(request: NextRequest) {
       total_piutang: formattedData.reduce((sum, item) => sum + Number(item.total_piutang), 0),
       total_dibayar: formattedData.reduce((sum, item) => sum + Number(item.dibayar), 0),
       total_sisa: formattedData.reduce((sum, item) => sum + Number(item.sisa), 0),
-      jumlah_belum_lunas: formattedData.filter(item => item.status === 'belum_lunas').length,
+      jumlah_belum_lunas: formattedData.filter(item => item.status === 'Belum Lunas').length,
       jumlah_jatuh_tempo: formattedData.filter(item => {
         if (!item.jatuh_tempo) return false;
         const today = new Date();
         const dueDate = new Date(item.jatuh_tempo);
-        return dueDate < today && item.status !== 'lunas';
+        return dueDate < today && item.status !== 'Lunas';
       }).length
     };
 
@@ -96,9 +193,9 @@ export async function GET(request: NextRequest) {
     const today = new Date().toISOString().split('T')[0];
     await supabase
       .from('piutang_penjualan')
-      .update({ status: 'jatuh_tempo' })
+      .update({ status: 'Jatuh Tempo' })
       .lt('jatuh_tempo', today)
-      .neq('status', 'lunas')
+      .neq('status', 'Lunas')
       .gt('sisa', 0);
 
     return NextResponse.json({

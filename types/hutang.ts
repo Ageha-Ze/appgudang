@@ -9,7 +9,7 @@ export interface HutangUmum {
   nominal_total: number;
   dibayar: number;
   sisa: number;
-  status: 'belum_lunas' | 'lunas';
+  status: 'Belum Lunas' | 'Cicil' | 'Lunas' | 'Jatuh Tempo';
   kas_id: number;
   kas?: {
     id: number;

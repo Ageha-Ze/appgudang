@@ -12,21 +12,49 @@
 
          console.log('Fetching produksi detail for ID:', id);
 
-         // Call the RPC function
-         const { data, error } = await supabase.rpc('get_produksi_with_details', { produksi_id: parseInt(id) });
+         // Query directly instead of using RPC
+         const { data: produksi, error: produksiError } = await supabase
+           .from('transaksi_produksi')
+           .select(`
+             *,
+             produk:produk_id (
+               id,
+               nama_produk,
+               kode_produk
+             ),
+             pegawai:pegawai_id (
+               id,
+               nama
+             ),
+             cabang:cabang_id (
+               id,
+               nama_cabang,
+               kode_cabang
+             ),
+             detail_produksi (
+               *,
+               item:produk (
+                 id,
+                 nama_produk,
+                 kode_produk
+               )
+             )
+           `)
+           .eq('id', parseInt(id))
+           .single();
 
-         if (error) {
-           console.error('Supabase RPC error:', error);
-           throw error;
+         if (produksiError) {
+           console.error('Error fetching produksi:', produksiError);
+           throw produksiError;
          }
 
-         if (!data) {
-           throw new Error('No data returned from RPC');
+         if (!produksi) {
+           throw new Error('Data tidak ditemukan');
          }
 
-         console.log('Fetched data:', JSON.stringify(data, null, 2));
+         console.log('Fetched produksi data:', JSON.stringify(produksi, null, 2));
 
-         return NextResponse.json({ data });
+         return NextResponse.json({ data: produksi });
        } catch (error: any) {
          const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
          console.error('Error fetching produksi detail:', errorMessage);

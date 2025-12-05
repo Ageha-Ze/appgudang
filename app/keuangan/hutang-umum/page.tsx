@@ -217,12 +217,12 @@ export default function HutangUmumPage() {
                     <td className="px-6 py-4">
                       <span
                         className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold ${
-                          item.status === 'lunas'
+                          item.status === 'Lunas'
                             ? 'bg-green-100 text-green-700'
                             : 'bg-red-100 text-red-700'
                         }`}
                       >
-                        {item.status === 'lunas' ? 'Lunas' : 'Belum Lunas'}
+                        {item.status === 'Lunas' ? 'Lunas' : 'Belum Lunas'}
                       </span>
                     </td>
                     <td className="px-6 py-4">

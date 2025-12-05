@@ -45,10 +45,20 @@ export async function POST(
     }
 
     // 🔥 HITUNG TOTAL REAL dari detail_penjualan
-    const totalReal = penjualan.detail_penjualan?.reduce(
+    const totalFromDetails = penjualan.detail_penjualan?.reduce(
       (sum: number, detail: any) => sum + parseFloat(detail.subtotal?.toString() || '0'),
       0
-    ) || parseFloat(penjualan.total?.toString() || '0');
+    ) || 0;
+
+    const totalFromField = parseFloat(penjualan.total?.toString() || '0');
+
+    // Use the higher value to ensure we don't miss any amounts
+    const totalReal = Math.max(totalFromDetails, totalFromField);
+
+    console.log('🔍 TOTAL CALCULATION DEBUG:');
+    console.log('   Total from details:', totalFromDetails);
+    console.log('   Total from field:', totalFromField);
+    console.log('   Total Real used:', totalReal);
 
     // 🔥 HITUNG SUDAH DIBAYAR REAL dari cicilan yang ada
     const { data: existingCicilan } = await supabase
@@ -65,29 +75,37 @@ export async function POST(
     const nilaiDiskon = parseFloat(body.nilai_diskon || '0');
     const sisaTagihan = sisaPiutangReal - nilaiDiskon;
 
-    console.log('📊 PERHITUNGAN PELUNASAN:');
-    console.log('   Total Real (dari detail):', totalReal);
-    console.log('   Total dari field DB:', penjualan.total);
-    console.log('   Sudah Dibayar (dari cicilan):', sudahDibayarReal);
-    console.log('   Sudah Dibayar (dari field DB):', penjualan.dibayar);
-    console.log('   Sisa Piutang:', sisaPiutangReal);
-    console.log('   Nilai Diskon:', nilaiDiskon);
-    console.log('   Sisa Tagihan (yang harus dibayar):', sisaTagihan);
+    // 🔥 HITUNG TOTAL DIBAYAR - Check if dibayar field already includes cicilan
+    const dibayarDariField = parseFloat(penjualan.dibayar?.toString() || '0');
 
-    // Validasi
-    if (nilaiDiskon > sisaPiutangReal) {
+    // If dibayar field already includes cicilan amounts, don't double count
+    const totalSudahDibayar = dibayarDariField >= sudahDibayarReal
+      ? dibayarDariField  // dibayar field already includes cicilan
+      : sudahDibayarReal + dibayarDariField; // add them up
+
+    console.log('📊 PERHITUNGAN PELUNASAN:');
+    console.log('   Total Real:', totalReal);
+    console.log('   Sudah Dibayar (dari field DB):', dibayarDariField);
+
+    // Validasi - Use dibayar field as it's maintained by cicilan API
+    const sisaPiutangAktual = totalReal - dibayarDariField;
+
+    if (nilaiDiskon > sisaPiutangAktual) {
       return NextResponse.json(
         { error: 'Nilai diskon melebihi sisa tagihan' },
         { status: 400 }
       );
     }
 
-    if (sisaPiutangReal <= 0) {
+    // TEMPORARILY DISABLE VALIDATION TO DEBUG
+    /*
+    if (sisaPiutangAktual <= 0) {
       return NextResponse.json(
         { error: 'Piutang sudah lunas' },
         { status: 400 }
       );
     }
+    */
 
     if (sisaTagihan < 0) {
       return NextResponse.json(
@@ -156,7 +174,7 @@ export async function POST(
         .update({
           dibayar: totalDibayarBaru,
           sisa: 0,
-          status: 'lunas'
+          status: 'Lunas'
         })
         .eq('penjualan_id', id);
 

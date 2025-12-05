@@ -72,7 +72,7 @@ export async function PUT(
     }
 
     // ✅ Validasi status yang diperbolehkan
-    const validStatuses = ['pending', 'aktif', 'selesai', 'dibatalkan'];
+    const validStatuses = ['pending', 'Aktif', 'Selesai', 'Batal'];
     if (!validStatuses.includes(body.status)) {
       return NextResponse.json(
         { error: `Status tidak valid. Harus salah satu dari: ${validStatuses.join(', ')}` },
@@ -88,7 +88,7 @@ export async function PUT(
         detail_konsinyasi (
           id,
           produk_id,
-          jumlah,
+          jumlah_titip,
           jumlah_terjual,
           jumlah_kembali,
           jumlah_sisa,
@@ -117,14 +117,14 @@ export async function PUT(
     console.log('📊 Current status:', oldStatus, '→', newStatus);
 
     // ✅ Validasi: Tidak boleh mengubah status yang sudah final
-    if (oldStatus === 'selesai') {
+    if (oldStatus === 'Selesai') {
       return NextResponse.json(
         { error: 'Tidak bisa mengubah status konsinyasi yang sudah selesai' },
         { status: 400 }
       );
     }
 
-    if (oldStatus === 'dibatalkan') {
+    if (oldStatus === 'Batal') {
       return NextResponse.json(
         { error: 'Tidak bisa mengubah status konsinyasi yang sudah dibatalkan' },
         { status: 400 }
@@ -132,7 +132,7 @@ export async function PUT(
     }
 
     // ✅ Business Logic: Handle status change
-    if (newStatus === 'selesai') {
+    if (newStatus === 'Selesai') {
       console.log('📦 Finishing konsinyasi...');
 
       // ⚠️ IMPORTANT: Stock tidak perlu dikembalikan karena:
@@ -176,7 +176,7 @@ export async function PUT(
       console.log('✅ Konsinyasi marked as finished (no stock changes needed)');
     }
 
-    if (newStatus === 'dibatalkan') {
+    if (newStatus === 'Batal') {
       console.log('🚫 Canceling konsinyasi...');
 
       // ⚠️ IMPORTANT: Cek dulu apakah sudah ada penjualan
@@ -203,7 +203,7 @@ export async function PUT(
       const details = konsinyasi.detail_konsinyasi || [];
       
       for (const detail of details) {
-        const jumlahTotal = parseFloat(detail.jumlah?.toString() || '0');
+        const jumlahTotal = parseFloat(detail.jumlah_titip?.toString() || '0');
         
         const { error: updateDetailError } = await supabase
           .from('detail_konsinyasi')
@@ -248,11 +248,11 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       message: `Status berhasil diubah ke "${newStatus}"${
-        newStatus === 'selesai' ? '. Semua detail konsinyasi ditutup.' : 
-        newStatus === 'dibatalkan' ? '. Konsinyasi dibatalkan.' : ''
+        newStatus === 'Selesai' ? '. Semua detail konsinyasi ditutup.' : 
+        newStatus === 'Batal' ? '. Konsinyasi dibatalkan.' : ''
       }`,
       data,
-      note: newStatus === 'selesai' || newStatus === 'dibatalkan' 
+      note: newStatus === 'Selesai' || newStatus === 'dibatalkan' 
         ? 'Stock tidak berubah karena barang yang tidak terjual sudah ada di stock kita (tidak pernah dikurangi saat kirim konsinyasi)'
         : null
     });

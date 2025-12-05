@@ -1,12 +1,10 @@
 "use client";
 import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
-import Navbar from "@/components/Navbar";
 import { usePathname } from "next/navigation";
 
-
 export default function UIWrapper({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const pathname = usePathname();
 
   const isAuthPage = pathname === "/login";
@@ -15,15 +13,15 @@ export default function UIWrapper({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Navbar
-          sidebarOpen={sidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-        />
-        <main className="flex-1 overflow-auto p-4 sm:p-6">
+    <div className="min-h-screen bg-gray-50">
+      <Sidebar
+        isExpanded={sidebarExpanded}
+        setIsExpanded={setSidebarExpanded}
+      />
+
+      {/* Konten tetap dengan margin kiri 80px (w-20 = 5rem = 80px) */}
+      <div className="ml-20 min-h-screen">
+        <main className="p-4 sm:p-6">
           {children}
         </main>
       </div>

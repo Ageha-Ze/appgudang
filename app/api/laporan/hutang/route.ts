@@ -61,12 +61,12 @@ export async function GET(request: NextRequest) {
       total_hutang: formattedData.reduce((sum, item) => sum + Number(item.total_hutang), 0),
       total_dibayar: formattedData.reduce((sum, item) => sum + Number(item.dibayar), 0),
       total_sisa: formattedData.reduce((sum, item) => sum + Number(item.sisa), 0),
-      jumlah_belum_lunas: formattedData.filter(item => item.status === 'belum_lunas').length,
+      jumlah_belum_lunas: formattedData.filter(item => item.status === 'Belum Lunas').length,
       jumlah_jatuh_tempo: formattedData.filter(item => {
         if (!item.jatuh_tempo) return false;
         const today = new Date();
         const dueDate = new Date(item.jatuh_tempo);
-        return dueDate < today && item.status !== 'lunas';
+        return dueDate < today && item.status !== 'Lunas';
       }).length
     };
 
@@ -74,9 +74,9 @@ export async function GET(request: NextRequest) {
     const today = new Date().toISOString().split('T')[0];
     await supabase
       .from('hutang_pembelian')
-      .update({ status: 'jatuh_tempo' })
+      .update({ status: 'Jatuh Tempo' })
       .lt('jatuh_tempo', today)
-      .neq('status', 'lunas')
+      .neq('status', 'Lunas')
       .gt('sisa', 0);
 
     return NextResponse.json({

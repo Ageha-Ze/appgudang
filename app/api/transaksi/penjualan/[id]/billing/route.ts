@@ -150,7 +150,7 @@ export async function POST(
             dibayar: 0,
             sisa: finalTotal,
             status: 'belum_lunas',
-            tanggal_jatuh_tempo: body.jatuh_tempo
+        jatuh_tempo: body.jatuh_tempo
           });
 
         if (piutangError) {

@@ -171,7 +171,7 @@ export async function PATCH(
         total_hutang: finalTotal,
         dibayar: totalDibayar,
         sisa: sisaHutang,
-        status: sisaHutang <= 0 ? 'lunas' : 'belum_lunas'
+        status: sisaHutang <= 0 ? 'Lunas' : 'Belum Lunas'
       })
       .eq('pembelian_id', pembelian_id);
 

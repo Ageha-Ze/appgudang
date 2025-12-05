@@ -171,7 +171,7 @@ export async function POST(
           total_hutang: totalHutang,
           dibayar: uang_muka,
           sisa: sisa,
-          status: sisa <= 0 ? 'lunas' : 'belum_lunas',
+          status: sisa <= 0 ? 'Lunas' : 'Belum Lunas',
           updated_at: new Date().toISOString()
         })
         .eq('pembelian_id', parseInt(pembelian_id));
@@ -184,7 +184,7 @@ export async function POST(
           total_hutang: totalHutang,
           dibayar: uang_muka,
           sisa: sisa,
-          status: sisa <= 0 ? 'lunas' : 'belum_lunas'
+          status: sisa <= 0 ? 'Lunas' : 'Belum Lunas'
         });
     }
 

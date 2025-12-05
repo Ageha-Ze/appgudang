@@ -70,7 +70,7 @@ export async function PATCH(
         keterangan: keterangan || null,
         nominal_total: nominalBaru,
         sisa: sisaBaru,
-        status: sisaBaru <= 0 ? 'lunas' : 'belum_lunas',
+        status: sisaBaru <= 0 ? 'Lunas' : (dibayar > 0 ? 'Cicil' : 'Belum Lunas'),
         kas_id: Number(kas_id),
         updated_at: new Date().toISOString(),
       })
@@ -90,7 +90,7 @@ export async function PATCH(
   }
 }
 
-// DELETE - Delete hutang
+// DELETE - Delete hutang (✅ Fix: hapus cicilan dulu, kembalikan kas)
 export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -99,17 +99,104 @@ export async function DELETE(
     const supabase = await supabaseServer();
     const { id } = await context.params;
 
-    // Delete hutang (cicilan akan terhapus otomatis karena ON DELETE CASCADE)
-    const { error } = await supabase
+    console.log('🗑️ Deleting hutang_umum:', id);
+
+    // 1. Get hutang data
+    const { data: hutang, error: hutangError } = await supabase
+      .from('hutang_umum')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (hutangError || !hutang) {
+      return NextResponse.json({ error: 'Hutang tidak ditemukan' }, { status: 404 });
+    }
+
+    console.log('💰 Hutang data:', hutang);
+
+    // 2. Get all cicilan for this hutang
+    const { data: cicilanList, error: cicilanError } = await supabase
+      .from('cicilan_hutang_umum')
+      .select('id, jumlah_cicilan, kas_id')
+      .eq('hutang_id', id);
+
+    if (cicilanError) throw cicilanError;
+
+    console.log(`📋 Found ${cicilanList?.length || 0} cicilan to delete`);
+
+    // 3. Restore kas for each cicilan (kembalikan uang cicilan ke kas)
+    if (cicilanList && cicilanList.length > 0) {
+      for (const cicilan of cicilanList) {
+        // Get kas info
+        const { data: kas, error: kasError } = await supabase
+          .from('kas')
+          .select('saldo, nama_kas')
+          .eq('id', cicilan.kas_id)
+          .single();
+
+        if (kas && !kasError) {
+          const kasSaldo = parseFloat(kas.saldo.toString());
+          const jumlahKembali = parseFloat(cicilan.jumlah_cicilan.toString());
+          const newSaldo = kasSaldo + jumlahKembali;
+
+          // Update kas (kembalikan uang)
+          const { error: updateKasError } = await supabase
+            .from('kas')
+            .update({ saldo: newSaldo })
+            .eq('id', cicilan.kas_id);
+
+          if (updateKasError) {
+            console.warn('⚠️ Could not update kas:', updateKasError);
+          } else {
+            console.log(`✅ Kas restored: ${kas.nama_kas} ${kasSaldo} -> ${newSaldo}`);
+          }
+
+          // Insert transaksi kas (kredit = uang masuk kembali)
+          await supabase
+            .from('transaksi_kas')
+            .insert({
+              kas_id: cicilan.kas_id,
+              tanggal_transaksi: new Date().toISOString().split('T')[0],
+              debit: 0,
+              kredit: jumlahKembali,
+              keterangan: `Pembatalan hutang #${id} - pengembalian cicilan`,
+            });
+        }
+      }
+    }
+
+    // 4. Delete all cicilan first (to avoid FK constraint)
+    const { error: deleteCicilanError } = await supabase
+      .from('cicilan_hutang_umum')
+      .delete()
+      .eq('hutang_id', id);
+
+    if (deleteCicilanError) throw deleteCicilanError;
+
+    console.log('✅ All cicilan deleted');
+
+    // 5. Delete transaksi kas related to this hutang (optional cleanup)
+    await supabase
+      .from('transaksi_kas')
+      .delete()
+      .ilike('keterangan', `%hutang #${id}%`);
+
+    // 6. Now delete the hutang (FK constraint satisfied)
+    const { error: deleteHutangError } = await supabase
       .from('hutang_umum')
       .delete()
       .eq('id', id);
 
-    if (error) throw error;
+    if (deleteHutangError) throw deleteHutangError;
 
-    return NextResponse.json({ message: 'Hutang berhasil dihapus' });
+    console.log('✅ Hutang deleted successfully');
+
+    return NextResponse.json({
+      success: true,
+      message: 'Hutang dan semua cicilan berhasil dihapus. Kas telah dikembalikan.',
+    });
   } catch (error: any) {
-    console.error('Error deleting hutang:', error);
+    console.error('❌ Error deleting hutang:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

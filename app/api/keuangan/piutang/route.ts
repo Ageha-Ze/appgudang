@@ -88,15 +88,12 @@ export async function GET(request: NextRequest) {
 
     // ✅ Transform data dengan kalkulasi REAL
     const transformedData = (piutangData || []).map((item: any) => {
-      // 🔥 HITUNG TOTAL DARI DETAIL_PENJUALAN
-      const realTotal = item.detail_penjualan?.reduce(
-        (sum: number, detail: any) => sum + parseFloat(detail.subtotal?.toString() || '0'),
-        0
-      ) || parseFloat(item.total?.toString() || '0');
+      // 🔥 GUNAKAN TOTAL TRANSAKSI PENJUALAN (SUDAH INCLUDE BIAYA TAMBAHAN)
+      const realTotal = parseFloat(item.total?.toString() || '0');
 
       // 🔥 HITUNG TERBAYAR DARI SUM CICILAN
       const terbayar = cicilanMap.get(item.id) || 0;
-      
+
       const sisaPiutang = realTotal - terbayar;
       const persenPembayaran = realTotal > 0 ? (terbayar / realTotal) * 100 : 0;
 
@@ -201,10 +198,7 @@ export async function POST(request: NextRequest) {
     // ✅ Calculate summary dengan total real
     const summary = (piutangData || []).reduce(
       (acc, item: any) => {
-        const realTotal = item.detail_penjualan?.reduce(
-          (sum: number, detail: any) => sum + parseFloat(detail.subtotal?.toString() || '0'),
-          0
-        ) || parseFloat(item.total?.toString() || '0');
+        const realTotal = parseFloat(item.total?.toString() || '0');
 
         const terbayar = cicilanMap.get(item.id) || 0;
         const sisa = realTotal - terbayar;

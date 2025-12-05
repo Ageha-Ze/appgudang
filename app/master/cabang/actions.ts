@@ -77,7 +77,7 @@ export async function addCabang(formData: any): Promise<ActionResult> {
       .from('kas')
       .insert({
         nama_kas: formData.nama_kas,
-        tipe_kas: 'Bank',
+        tipe_kas: 'bank',
         no_rekening: formData.nomor_rekening || null,
         saldo: 0,
         cabang_id: cabangData.id,
@@ -173,7 +173,7 @@ export async function updateCabang(id: number, formData: any): Promise<ActionRes
           .from('kas')
           .insert({
             nama_kas: formData.nama_kas,
-            tipe_kas: 'Bank',
+            tipe_kas: 'bank',
             no_rekening: formData.nomor_rekening || null,
             saldo: 0,
             cabang_id: id,

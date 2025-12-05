@@ -193,13 +193,22 @@ export default function CabangModal({ isOpen, onClose, cabang, onSuccess }: Caba
         <div>
           <label className="block text-gray-700 mb-2">No Telepon</label>
           <input
-            type="text"
-            className="w-full px-4 py-2 bg-blue-50 border border-gray-300 rounded-lg"
-            value={formData.no_telp}
-            onChange={(e) => setFormData({ ...formData, no_telp: e.target.value })}
-            disabled={isSubmitting}
-            placeholder="Contoh: 0274123456"
-          />
+  type="text"
+  className="w-full px-4 py-2 bg-blue-50 border border-gray-300 rounded-lg"
+  value={formData.no_telp}
+  onChange={(e) => {
+    // Hanya izinkan angka
+    const value = e.target.value;
+    if (/^\d*$/.test(value)) {
+      setFormData({ ...formData, no_telp: value });
+    } else {
+      setError("No Telepon hanya boleh angka");
+    }
+  }}
+  disabled={isSubmitting}
+  placeholder="Contoh: 0274123456"
+/>
+
         </div>
 
         <div>
@@ -295,14 +304,22 @@ export default function CabangModal({ isOpen, onClose, cabang, onSuccess }: Caba
 
           <div>
             <label className="block text-gray-700 mb-2">Nomor Rekening</label>
-            <input
-              type="text"
-              className="w-full px-4 py-2 bg-blue-50 border border-gray-300 rounded-lg"
-              value={formData.nomor_rekening}
-              onChange={(e) => setFormData({ ...formData, nomor_rekening: e.target.value })}
-              placeholder="Contoh: 1234567890"
-              disabled={isSubmitting}
-            />
+           <input
+  type="text"
+  className="w-full px-4 py-2 bg-blue-50 border border-gray-300 rounded-lg"
+  value={formData.nomor_rekening}
+  onChange={(e) => {
+    const value = e.target.value;
+    if (/^\d*$/.test(value)) {
+      setFormData({ ...formData, nomor_rekening: value });
+    } else {
+      setError("Nomor Rekening hanya boleh angka");
+    }
+  }}
+  placeholder="Contoh: 1234567890"
+  disabled={isSubmitting}
+/>
+
           </div>
         </div>
 

@@ -42,16 +42,20 @@ export async function POST(
 
     const { tanggal_cicilan, jumlah_cicilan, kas_id, keterangan, is_pelunasan } = body;
 
+    console.log('📥 Request pelunasan:', { hutangId: id, jumlah_cicilan, kas_id, is_pelunasan });
+
     // Get hutang info
-    const { data: hutang } = await supabase
+    const { data: hutang, error: hutangError } = await supabase
       .from('hutang_umum')
-      .select('dibayar, sisa, nominal_total')
+      .select('dibayar, sisa, nominal_total, pihak')
       .eq('id', id)
       .single();
 
-    if (!hutang) {
+    if (hutangError || !hutang) {
       return NextResponse.json({ error: 'Hutang tidak ditemukan' }, { status: 404 });
     }
+
+    console.log('💰 Data hutang:', hutang);
 
     let jumlahBayar = Number(jumlah_cicilan);
 
@@ -67,6 +71,36 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    // ✅ Validasi saldo kas
+    const { data: kas, error: kasError } = await supabase
+      .from('kas')
+      .select('saldo, nama_kas')
+      .eq('id', kas_id)
+      .single();
+
+    if (kasError || !kas) {
+      return NextResponse.json({ error: 'Kas tidak ditemukan' }, { status: 404 });
+    }
+
+    const kasSaldo = parseFloat(kas.saldo.toString());
+    if (kasSaldo < jumlahBayar) {
+      return NextResponse.json(
+        { error: `Saldo kas tidak cukup. Saldo tersedia: Rp. ${kasSaldo.toLocaleString('id-ID')}` },
+        { status: 400 }
+      );
+    }
+
+    // ✅ Update kas DULU (kurangi saldo)
+    const newKasSaldo = kasSaldo - jumlahBayar;
+    const { error: updateKasError } = await supabase
+      .from('kas')
+      .update({ saldo: newKasSaldo })
+      .eq('id', kas_id);
+
+    if (updateKasError) throw updateKasError;
+
+    console.log(`✅ Kas updated: ${kas.nama_kas} ${kasSaldo} -> ${newKasSaldo}`);
 
     // Insert cicilan
     const { error: cicilanError } = await supabase
@@ -85,41 +119,46 @@ export async function POST(
     const dibayarBaru = Number(hutang.dibayar) + jumlahBayar;
     const sisaBaru = Number(hutang.nominal_total) - dibayarBaru;
 
+    console.log(`📊 Update hutang: dibayar ${hutang.dibayar} -> ${dibayarBaru}, sisa ${hutang.sisa} -> ${sisaBaru}`);
+
     const { error: updateError } = await supabase
       .from('hutang_umum')
       .update({
         dibayar: dibayarBaru,
-        sisa: sisaBaru,
-        status: sisaBaru <= 0 ? 'lunas' : 'belum_lunas',
+        sisa: Math.max(0, sisaBaru), // ✅ Ensure tidak negatif
+        status: sisaBaru <= 0 ? 'Lunas' : (dibayarBaru > 0 ? 'Cicil' : 'Belum Lunas'), // ✅ Fix status
         updated_at: new Date().toISOString(),
       })
       .eq('id', id);
 
     if (updateError) throw updateError;
 
-    // Insert transaksi kas (kredit = uang masuk/pengembalian)
-    const { error: kasError } = await supabase
+    // Insert transaksi kas (debit = uang keluar untuk bayar hutang)
+    const { error: kasTransaksiError } = await supabase
       .from('transaksi_kas')
       .insert({
         kas_id: Number(kas_id),
         tanggal_transaksi: tanggal_cicilan,
-        kredit: jumlahBayar,
-        debit: 0,
-        keterangan: `Pembayaran cicilan hutang #${id}`,
+        debit: jumlahBayar, // ✅ Debit karena uang keluar untuk bayar hutang
+        kredit: 0,
+        keterangan: `Pembayaran ${is_pelunasan ? 'pelunasan' : 'cicilan'} hutang - ${hutang.pihak} #${id}`,
       });
 
-    if (kasError) throw kasError;
+    if (kasTransaksiError) throw kasTransaksiError;
+
+    console.log('✅ Pelunasan berhasil');
 
     return NextResponse.json({
+      success: true,
       message: is_pelunasan ? 'Hutang berhasil dilunasi' : 'Cicilan berhasil ditambahkan',
     });
   } catch (error: any) {
-    console.error('Error adding cicilan:', error);
+    console.error('❌ Error adding cicilan:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-
 // DELETE - Delete cicilan
+
 export async function DELETE(request: NextRequest) {
   try {
     const supabase = await supabaseServer();
@@ -131,18 +170,68 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Parameter tidak lengkap' }, { status: 400 });
     }
 
-    // Get cicilan info
-    const { data: cicilan } = await supabase
+    console.log('🗑️ Deleting cicilan:', { cicilanId, hutangId });
+
+    // 1. Get cicilan info
+    const { data: cicilan, error: cicilanError } = await supabase
       .from('cicilan_hutang_umum')
-      .select('jumlah_cicilan')
+      .select('jumlah_cicilan, kas_id, tanggal_cicilan')
       .eq('id', cicilanId)
       .single();
 
-    if (!cicilan) {
+    if (cicilanError || !cicilan) {
       return NextResponse.json({ error: 'Cicilan tidak ditemukan' }, { status: 404 });
     }
 
-    // Delete cicilan
+    const jumlahCicilan = parseFloat(cicilan.jumlah_cicilan.toString());
+
+    console.log('💰 Cicilan data:', cicilan);
+
+    // 2. Get kas info and restore saldo (kembalikan uang ke kas)
+    const { data: kas, error: kasError } = await supabase
+      .from('kas')
+      .select('saldo, nama_kas')
+      .eq('id', cicilan.kas_id)
+      .single();
+
+    if (kas && !kasError) {
+      const kasSaldo = parseFloat(kas.saldo.toString());
+      const newSaldo = kasSaldo + jumlahCicilan;
+
+      // Update kas
+      const { error: updateKasError } = await supabase
+        .from('kas')
+        .update({ saldo: newSaldo })
+        .eq('id', cicilan.kas_id);
+
+      if (updateKasError) {
+        console.warn('⚠️ Could not update kas:', updateKasError);
+      } else {
+        console.log(`✅ Kas restored: ${kas.nama_kas} ${kasSaldo} -> ${newSaldo}`);
+      }
+
+      // Insert transaksi kas (kredit = uang masuk kembali)
+      await supabase
+        .from('transaksi_kas')
+        .insert({
+          kas_id: cicilan.kas_id,
+          tanggal_transaksi: new Date().toISOString().split('T')[0],
+          debit: 0,
+          kredit: jumlahCicilan,
+          keterangan: `Pembatalan cicilan hutang #${hutangId}`,
+        });
+    }
+
+    // 3. Delete transaksi_kas yang terkait dengan cicilan ini (cleanup)
+    await supabase
+      .from('transaksi_kas')
+      .delete()
+      .eq('kas_id', cicilan.kas_id)
+      .eq('debit', jumlahCicilan)
+      .eq('tanggal_transaksi', cicilan.tanggal_cicilan)
+      .ilike('keterangan', `%hutang%${hutangId}%`);
+
+    // 4. Delete cicilan
     const { error: deleteError } = await supabase
       .from('cicilan_hutang_umum')
       .delete()
@@ -150,31 +239,73 @@ export async function DELETE(request: NextRequest) {
 
     if (deleteError) throw deleteError;
 
-    // Update hutang (kurangi dibayar, tambah sisa)
-    const { data: hutang } = await supabase
+    console.log('✅ Cicilan deleted');
+
+    // 5. Get hutang info untuk recalculate
+    const { data: hutang, error: hutangError } = await supabase
       .from('hutang_umum')
-      .select('dibayar, nominal_total')
+      .select('nominal_total, dibayar')
       .eq('id', hutangId)
       .single();
 
-    if (hutang) {
-      const dibayarBaru = Number(hutang.dibayar) - Number(cicilan.jumlah_cicilan);
-      const sisaBaru = Number(hutang.nominal_total) - dibayarBaru;
-
-      await supabase
-        .from('hutang_umum')
-        .update({
-          dibayar: dibayarBaru,
-          sisa: sisaBaru,
-          status: sisaBaru > 0 ? 'belum_lunas' : 'lunas',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', hutangId);
+    if (hutangError || !hutang) {
+      throw new Error('Hutang tidak ditemukan');
     }
 
-    return NextResponse.json({ message: 'Cicilan berhasil dihapus' });
+    // 6. Recalculate total dibayar dari cicilan yang tersisa
+    const { data: remainingCicilan, error: remainingError } = await supabase
+      .from('cicilan_hutang_umum')
+      .select('jumlah_cicilan')
+      .eq('hutang_id', hutangId);
+
+    if (remainingError) throw remainingError;
+
+    const totalDibayar = (remainingCicilan || []).reduce(
+      (sum: number, c: any) => sum + parseFloat(c.jumlah_cicilan || 0),
+      0
+    );
+
+    const nominalTotal = parseFloat(hutang.nominal_total.toString());
+    const sisaBaru = nominalTotal - totalDibayar;
+
+    // ✅ Determine correct status
+    let newStatus: 'Lunas' | 'Cicil' | 'Belum Lunas';
+    if (sisaBaru <= 0) {
+      newStatus = 'Lunas';
+    } else if (totalDibayar > 0) {
+      newStatus = 'Cicil';
+    } else {
+      newStatus = 'Belum Lunas';
+    }
+
+    console.log(`📊 Recalculate hutang: total=${nominalTotal}, dibayar=${totalDibayar}, sisa=${sisaBaru}, status=${newStatus}`);
+
+    // 7. Update hutang dengan data yang benar
+    const { error: updateHutangError } = await supabase
+      .from('hutang_umum')
+      .update({
+        dibayar: totalDibayar,
+        sisa: Math.max(0, sisaBaru),
+        status: newStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', hutangId);
+
+    if (updateHutangError) throw updateHutangError;
+
+    console.log('✅ Hutang updated with correct status');
+
+    return NextResponse.json({
+      success: true,
+      message: 'Cicilan berhasil dihapus dan saldo kas dikembalikan',
+      data: {
+        dibayar_baru: totalDibayar,
+        sisa_baru: sisaBaru,
+        status_baru: newStatus,
+      },
+    });
   } catch (error: any) {
-    console.error('Error deleting cicilan:', error);
+    console.error('❌ Error deleting cicilan:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

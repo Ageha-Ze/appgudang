@@ -214,14 +214,14 @@ export default function PiutangPenjualanPage() {
 
   // Filter data (client-side for simplicity; can move to API if needed)
   const filteredData = piutangData.filter(item => {
-    const matchSearch = 
-      item.nota.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.sales.toLowerCase().includes(searchQuery.toLowerCase());
-    
+    const matchSearch =
+      (item.nota?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (item.customer?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (item.sales?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+
     const matchCabang = selectedCabang === 'all' || item.cabang === selectedCabang;
     const matchStatus = selectedStatus === 'all' || item.status === selectedStatus;
-    
+
     return matchSearch && matchCabang && matchStatus;
   });
 

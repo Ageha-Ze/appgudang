@@ -1,4 +1,4 @@
-'use client';
+ 'use client';
 
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
@@ -10,29 +10,42 @@ interface Props {
   pembelianId: number;
   sisaTagihan: number;
   cabangId?: number;
+  editingCicilan: any; // Required for edit mode
 }
 
-export default function ModalCicil({
+export default function ModalEditCicil({
   isOpen,
   onClose,
   onSuccess,
   pembelianId,
   sisaTagihan,
   cabangId,
+  editingCicilan,
 }: Props) {
   const [rekenings, setRekenings] = useState<any[]>([]);
   const [formData, setFormData] = useState({
-  rekening: '',
-  tanggal_cicilan: new Date().toISOString().split('T')[0],
-  nilai_cicilan: 0,
-  keterangan: '',
-});
-
+    rekening: '',
+    tanggal_cicilan: new Date().toISOString().split('T')[0],
+    nilai_cicilan: 0,
+    keterangan: '',
+  });
   const [loading, setLoading] = useState(false);
 
   // Remaining tagihan after entering nilai_cicilan (preview)
   const remainingAfter = Math.max(0, sisaTagihan - (formData.nilai_cicilan || 0));
   const isOver = (formData.nilai_cicilan || 0) > sisaTagihan;
+
+  // Populate form with editing data
+  useEffect(() => {
+    if (isOpen && editingCicilan) {
+      setFormData({
+        rekening: editingCicilan.rekening || '',
+        tanggal_cicilan: editingCicilan.tanggal_cicilan || new Date().toISOString().split('T')[0],
+        nilai_cicilan: editingCicilan.jumlah_cicilan || 0,
+        keterangan: editingCicilan.keterangan || '',
+      });
+    }
+  }, [isOpen, editingCicilan]);
 
   useEffect(() => {
     if (isOpen) {
@@ -43,17 +56,17 @@ export default function ModalCicil({
   const fetchRekenings = async () => {
     try {
       // Fetch dengan filter cabang jika ada, atau semua jika tidak ada
-      const url = cabangId 
+      const url = cabangId
         ? `/api/master/kas?cabang_id=${cabangId}`
         : '/api/master/kas';
-      
+
       console.log('Fetching rekenings from:', url);
-      
+
       const res = await fetch(url);
       const json = await res.json();
-      
+
       console.log('Rekenings response:', json);
-      
+
       if (json.data && json.data.length > 0) {
         setRekenings(json.data);
         console.log('Rekenings set successfully:', json.data.length, 'items');
@@ -66,10 +79,10 @@ export default function ModalCicil({
       setRekenings([]);
     }
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (formData.nilai_cicilan <= 0) {
       alert('Nilai cicilan harus lebih dari 0');
       return;
@@ -83,33 +96,28 @@ export default function ModalCicil({
     setLoading(true);
 
     try {
+      const payload = {
+        cicilanId: editingCicilan.id,
+        tanggal_cicilan: formData.tanggal_cicilan,
+        jumlah_cicilan: formData.nilai_cicilan,
+        rekening: formData.rekening,
+        keterangan: formData.keterangan,
+      };
+
       const res = await fetch(`/api/transaksi/pembelian/${pembelianId}/cicilan`, {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tanggal_cicilan: formData.tanggal_cicilan,
-          jumlah_cicilan: formData.nilai_cicilan,
-          rekening: formData.rekening,
-          jenis_pembayaran: "cicilan", // ← langsung pakai cicilan
-          keterangan: '',
-        }),
+        body: JSON.stringify(payload),
       });
 
       const json = await res.json();
 
       if (res.ok) {
-        alert('Cicilan berhasil ditambahkan');
-        setFormData({
-          rekening: '',
-          tanggal_cicilan: new Date().toISOString().split('T')[0],
-          nilai_cicilan: 0,
-            keterangan: '',
-
-        });
+        alert('Cicilan berhasil diperbarui');
         onSuccess(json?.pembelian);
         onClose();
       } else {
-        alert('Gagal menambahkan cicilan: ' + json.error);
+        alert('Gagal memperbarui cicilan: ' + json.error);
       }
     } catch (error: any) {
       console.error('Error:', error);
@@ -124,8 +132,7 @@ export default function ModalCicil({
       rekening: '',
       tanggal_cicilan: new Date().toISOString().split('T')[0],
       nilai_cicilan: 0,
-        keterangan: '',
-
+      keterangan: '',
     });
     onClose();
   };
@@ -136,7 +143,7 @@ export default function ModalCicil({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Tambah Cicilan Pembelian</h2>
+          <h2 className="text-xl font-bold">Edit Cicilan Pembelian</h2>
           <button onClick={handleClose} className="text-gray-500 hover:text-gray-700">
             <X size={24} />
           </button>
@@ -219,18 +226,17 @@ export default function ModalCicil({
           </div>
 
           <div>
-  <label className="block text-sm font-medium mb-1">Keterangan</label>
-  <textarea
-    placeholder="Opsional — contoh: cicilan ke-2, pelunasan DP, dll"
-    value={formData.keterangan}
-    onChange={(e) =>
-      setFormData({ ...formData, keterangan: e.target.value })
-    }
-    className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-    rows={2}
-  />
-</div>
-
+            <label className="block text-sm font-medium mb-1">
+              Keterangan
+            </label>
+            <textarea
+              value={formData.keterangan}
+              onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })}
+              className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
+              placeholder="Masukkan keterangan cicilan..."
+            />
+          </div>
 
           <div className="flex gap-2 pt-4">
             <button
@@ -238,7 +244,7 @@ export default function ModalCicil({
               disabled={loading || formData.nilai_cicilan <= 0 || isOver}
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
             >
-              {loading ? 'Menyimpan...' : 'Simpan'}
+              {loading ? 'Menyimpan...' : 'Update'}
             </button>
             <button
               type="button"
