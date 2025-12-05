@@ -169,13 +169,27 @@ export default function Sidebar({ isExpanded, setIsExpanded }: SidebarProps) {
   // Fetch current user data
   const fetchCurrentUser = async () => {
     try {
+      // Try to get user data from localStorage as fallback
+      const userData = localStorage.getItem('current_user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        if (user.username) {
+          setUsername(user.username);
+          return;
+        }
+      }
+
+      // Fallback to API call
       const response = await fetch('/api/auth/user');
       const result = await response.json();
       if (result.success && result.user) {
         setUsername(result.user.username);
+        // Store in localStorage for faster access
+        localStorage.setItem('current_user', JSON.stringify(result.user));
       }
     } catch (error) {
       console.error('Error fetching current user:', error);
+      setUsername('Admin'); // Set a default fallback
     }
   };
 
