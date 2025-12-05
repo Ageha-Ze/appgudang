@@ -100,25 +100,53 @@ export default function UserPage() {
 
   const getLevelBadge = (level: string | number) => {
     const levelLower = String(level).toLowerCase();
-    if (levelLower === 'admin') {
+    if (levelLower === 'super_admin') {
+      return {
+        bg: 'bg-red-50',
+        text: 'text-red-700',
+        border: 'border-red-200',
+        icon: Crown
+      };
+    } else if (levelLower === 'admin') {
       return {
         bg: 'bg-purple-50',
         text: 'text-purple-700',
         border: 'border-purple-200',
         icon: Crown
       };
-    } else if (levelLower === 'manager') {
+    } else if (levelLower === 'keuangan') {
+      return {
+        bg: 'bg-orange-50',
+        text: 'text-orange-700',
+        border: 'border-orange-200',
+        icon: Shield
+      };
+    } else if (levelLower === 'kasir') {
+      return {
+        bg: 'bg-green-50',
+        text: 'text-green-700',
+        border: 'border-green-200',
+        icon: User
+      };
+    } else if (levelLower === 'gudang') {
       return {
         bg: 'bg-blue-50',
         text: 'text-blue-700',
         border: 'border-blue-200',
-        icon: Shield
+        icon: User
+      };
+    } else if (levelLower === 'sales') {
+      return {
+        bg: 'bg-teal-50',
+        text: 'text-teal-700',
+        border: 'border-teal-200',
+        icon: User
       };
     } else {
       return {
-        bg: 'bg-emerald-50',
-        text: 'text-emerald-700',
-        border: 'border-emerald-200',
+        bg: 'bg-gray-50',
+        text: 'text-gray-700',
+        border: 'border-gray-200',
         icon: User
       };
     }

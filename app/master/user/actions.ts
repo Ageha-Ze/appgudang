@@ -34,7 +34,7 @@ export async function getUsers(): Promise<any[]> {
 export async function addUser(formData: {
   username: string;
   password: string;
-  level: number;
+  level: string;
 }): Promise<ActionResult> {
   try {
     const supabase = await supabaseServer();
@@ -84,7 +84,7 @@ export async function updateUser(
   formData: {
     username: string;
     password?: string;
-    level: number;
+    level: string;
   }
 ): Promise<ActionResult> {
   try {

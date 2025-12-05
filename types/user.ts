@@ -2,7 +2,7 @@ export interface UserData {
   id: number;
   username: string;
   password?: string;
-  level: number;
+  level: string;
   created_at?: string;
   updated_at?: string;
 }
