@@ -42,19 +42,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-md">
+    <div className="min-h-screen flex relative overflow-hidden">
+      
+      {/* Background Gradient - Always Visible */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 lg:hidden">
+        <div className="absolute top-20 left-10 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-20 right-10 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl"></div>
+      </div>
+
+      {/* Login Form Container */}
+      <div className="flex-1 flex items-center justify-center p-6 relative z-10">
+        
+        {/* Glass Card for Mobile */}
+        <div className="w-full max-w-md bg-white/95 lg:bg-white backdrop-blur-xl rounded-2xl shadow-2xl p-8 lg:p-0 lg:shadow-none lg:backdrop-blur-none">
           
           {/* Logo & Title */}
-          <div className="mb-10">
+          <div className="mb-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
                 <Building2 className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">SYIFA HAVEN</h1>
+                <h1 className="text-2xl font-bold text-gray-900">GUDANG KITA</h1>
                 <p className="text-sm text-gray-500">Warehouse Management</p>
               </div>
             </div>
@@ -69,7 +78,7 @@ export default function LoginPage() {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r">
+            <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r animate-shake">
               <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
@@ -196,7 +205,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right Side - Illustration/Background */}
+      {/* Right Side - Illustration/Background - Desktop Only */}
       <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 relative overflow-hidden">
         {/* Decorative Elements */}
         <div className="absolute inset-0">
@@ -229,7 +238,7 @@ export default function LoginPage() {
               </div>
               <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
                 <span className="text-2xl">📊</span>
-                <span className="text-sm font-medium">Srock Analytics & Reports</span>
+                <span className="text-sm font-medium">Stock Analytics & Reports</span>
               </div>
               <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
                 <span className="text-2xl">🔄</span>

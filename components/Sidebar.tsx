@@ -8,8 +8,9 @@ import {
   FileText, User, Users, Truck, Briefcase, Wallet, Building,
   BoxIcon, TrendingUp, TrendingDown, Clipboard, ChevronDown,
   CreditCard, Sparkles, Handshake, Bell, LogOut, Settings,
-  ChevronRight, X, Check, ChevronLeft,
+  ChevronRight, ChevronLeft, X, Check,
 } from 'lucide-react';
+import { logoutUser } from '@/app/login/actions';
 
 
 
@@ -222,10 +223,18 @@ export default function Sidebar({ isExpanded, setIsExpanded }: SidebarProps) {
 
   const handleLogout = async () => {
     try {
-      // Add logout logic here
-      router.push('/login');
+      // Panggil server action untuk hapus cookie
+      await logoutUser();
+
+      // Clear localStorage jika ada
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // Hard redirect ke login
+      window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);
+      window.location.href = '/login';
     }
   };
 
