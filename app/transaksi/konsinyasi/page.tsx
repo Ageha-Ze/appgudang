@@ -165,14 +165,14 @@ export default function KonsinyasiPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2">
+      <div className="flex flex-col gap-2 mb-4 sm:mb-6">
         <button
           onClick={() => {
             setActiveTab('transaksi');
             setPage(1);
             setSearch('');
           }}
-          className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition whitespace-nowrap text-sm sm:text-base ${
+          className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition text-sm sm:text-base ${
             activeTab === 'transaksi'
               ? 'bg-indigo-600 text-white shadow-lg'
               : 'bg-white text-gray-700 hover:bg-indigo-50'
@@ -187,7 +187,7 @@ export default function KonsinyasiPage() {
             setPage(1);
             setSearch('');
           }}
-          className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition whitespace-nowrap text-sm sm:text-base ${
+          className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition text-sm sm:text-base ${
             activeTab === 'toko'
               ? 'bg-indigo-600 text-white shadow-lg'
               : 'bg-white text-gray-700 hover:bg-indigo-50'
@@ -199,14 +199,14 @@ export default function KonsinyasiPage() {
       </div>
 
       {/* Search & Add Button */}
-      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6 bg-white p-3 sm:p-4 rounded-lg shadow-md">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3 mb-4 sm:mb-6 bg-white p-3 sm:p-4 rounded-lg shadow-md">
+        <div className="flex flex-col gap-2">
           <label className="text-xs sm:text-sm font-medium text-gray-700">Search:</label>
           <input
             type="text"
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
-            className="flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-3 sm:px-4 py-2 text-sm border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             placeholder="Cari..."
           />
         </div>
@@ -218,7 +218,7 @@ export default function KonsinyasiPage() {
               router.push('/transaksi/konsinyasi/toko/tambah');
             }
           }}
-          className="w-full sm:w-auto px-4 sm:px-6 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2"
+          className="w-full px-4 sm:px-6 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2"
         >
           <Plus size={18} />
           Tambah {activeTab === 'transaksi' ? 'Konsinyasi' : 'Toko'}
@@ -586,6 +586,7 @@ export default function KonsinyasiPage() {
           </div>
         </>
       )}
+
 
        {/* Pagination */}
       {!loading && totalPages > 1 && (
