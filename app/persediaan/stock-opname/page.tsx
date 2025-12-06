@@ -221,22 +221,26 @@ export default function StockOpnamePage() {
 
       {/* Main Card */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-2xl font-bold">Stock Opname</h3>
-              <p className="text-purple-100 mt-1">Penghitungan dan penyesuaian stock fisik</p>
-            </div>
-            <button
-  onClick={() => setShowModalTambah(true)}
-  className="w-full sm:w-auto bg-gradient-to-r from-green-500 to-green-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center justify-center shadow-md hover:shadow-lg transform hover:scale-105"
->
-  <Plus size={20} className="mr-2" />
-  <span className="whitespace-nowrap">Tambah Opname</span>
-</button>
-          </div>
-        </div>
+       {/* Header */}
+<div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-6">
+  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+    <div>
+      <h3 className="text-2xl font-bold">Stock Opname</h3>
+      <p className="text-purple-100 mt-1">
+        Penghitungan dan penyesuaian stock fisik
+      </p>
+    </div>
+
+    <button
+      onClick={() => setShowModalTambah(true)}
+      className="w-full sm:w-auto bg-gradient-to-r from-green-500 to-green-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center justify-center shadow-md hover:shadow-lg transform hover:scale-105"
+    >
+      <Plus size={20} className="mr-2" />
+      <span className="whitespace-nowrap">Tambah Opname</span>
+    </button>
+  </div>
+</div>
+       
 
         {/* Content */}
         <div className="p-6">
