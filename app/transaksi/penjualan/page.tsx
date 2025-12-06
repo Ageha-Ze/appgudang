@@ -107,7 +107,27 @@ export default function PenjualanListPage() {
         </div>
       </div>
 
-      {/* Input Search Field */}
+      {/* Search & Add Button - Menggunakan Pendekatan Vertikal di Mobile */}
+<div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 bg-white p-3 sm:p-4 rounded-lg shadow-md">
+  
+  {/* Container Search - Ini adalah perubahan utama */}
+  {/* 
+    PERBEDAAN KUNCI:
+    - Di kode original: flex items-center (selalu horizontal)
+    - Di kode ini: flex flex-col sm:flex-row (vertikal di mobile, horizontal di desktop)
+  */}
+  <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+    
+    {/* Label Search */}
+    {/* 
+      Catatan: whitespace-nowrap tetap berguna untuk memastikan 
+      label tidak break menjadi dua baris bahkan ketika dalam mode horizontal di desktop
+    */}
+    <label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">
+      Search:
+    </label>
+    
+    {/* Input Search Field */}
     {/* 
       PERUBAHAN PENTING pada Input:
       - Menghapus: flex-1 min-w-0 (tidak diperlukan karena parent sudah flex-col di mobile)
@@ -128,14 +148,16 @@ export default function PenjualanListPage() {
       placeholder="Cari..."
     />
   </div>
-        <button
-          onClick={() => setShowModalTambah(true)}
-          className="w-full sm:w-auto px-4 sm:px-6 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 whitespace-nowrap"
-        >
-          <Plus size={18} />
-          Tambah
-        </button>
-      </div>
+  
+  {/* Tombol Tambah - Tidak ada perubahan, sudah responsive dengan baik */}
+  <button
+    onClick={() => setShowModal(true)}
+    className="w-full sm:w-auto px-4 sm:px-6 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 whitespace-nowrap"
+  >
+    <Plus size={18} />
+    Tambah
+  </button>
+</div>
 
       {/* Mobile Cards View */}
       <div className="block lg:hidden space-y-3">
