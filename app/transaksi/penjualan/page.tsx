@@ -151,7 +151,7 @@ export default function PenjualanListPage() {
   
   {/* Tombol Tambah - Tidak ada perubahan, sudah responsive dengan baik */}
   <button
-    onClick={() => setShowModal(true)}
+    onClick={() => setShowModalTambah(true)}
     className="w-full sm:w-auto px-4 sm:px-6 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 whitespace-nowrap"
   >
     <Plus size={18} />
