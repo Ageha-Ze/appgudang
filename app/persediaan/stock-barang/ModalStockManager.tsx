@@ -52,6 +52,7 @@ export default function ModalStockManager({
 }: ModalStockManagerProps) {
   const [currentMode, setCurrentMode] = useState<'add' | 'remove' | 'adjust' | 'price'>(mode);
   const [loading, setLoading] = useState(false);
+  const [hasUserSelectedMode, setHasUserSelectedMode] = useState(false);
   const [produks, setProduks] = useState<Produk[]>([]);
   const [cabangs, setCabangs] = useState<Cabang[]>([]);
   const [stockData, setStockData] = useState<StockData | null>(null);
@@ -69,15 +70,14 @@ export default function ModalStockManager({
 
   // Fetch master data and initialize form with initial values
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !hasUserSelectedMode) {
       fetchProduks();
       fetchCabangs();
       setCurrentMode(mode);
 
       // Initialize form with provided initial values
       if (initialProdukId || initialCabangId) {
-        setFormData(prev => ({
-          ...prev,
+        setFormData({
           produk_id: initialProdukId || 0,
           cabang_id: initialCabangId || 0,
           hpp: initialHpp || 0,
@@ -85,16 +85,24 @@ export default function ModalStockManager({
           persentase: initialPersentase || 0,
           jumlah: 0,
           keterangan: '',
-        }));
+        });
 
         // Find selected product
-        if (initialProdukId) {
+        if (initialProdukId && produks.length > 0) {
           const produk = produks.find(p => p.id === initialProdukId);
           setSelectedProduk(produk || null);
         }
       }
     }
-  }, [isOpen, mode, initialProdukId, initialCabangId, initialHpp, initialHargaJual, initialPersentase, produks]);
+  }, [isOpen, mode, initialProdukId, initialCabangId, initialHpp, initialHargaJual, initialPersentase, hasUserSelectedMode]);
+
+  // Reset when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setHasUserSelectedMode(false);
+      setCurrentMode(mode); // Reset to prop mode when closed
+    }
+  }, [isOpen, mode]);
 
   useEffect(() => {
     // Reset form when produk changes
@@ -195,6 +203,7 @@ export default function ModalStockManager({
 
   const handleModeChange = (newMode: 'add' | 'remove' | 'adjust' | 'price') => {
     setCurrentMode(newMode);
+    setHasUserSelectedMode(true); // This prevents useEffect from overriding the mode
     // ✅ CRITICAL FIX: Complete form reset when switching modes
     setFormData({
       produk_id: 0,
@@ -454,27 +463,69 @@ export default function ModalStockManager({
             </label>
             <select
               value={formData.produk_id}
-              onChange={(e) => {
+              onChange={async (e) => {
                 const produkId = parseInt(e.target.value);
                 const produk = produks.find(p => p.id === produkId);
-                setFormData({
-                  ...formData,
-                  produk_id: produkId,
-                  hpp: produk?.hpp || 0, // Always populate current HPP
-                  harga_jual: produk?.harga_jual || 0, // Always populate current Harga Jual
-                  persentase: produk?.margin || 0, // Always populate current margin
-                });
-                setSelectedProduk(produk || null);
+
+                // Fetch current stock for this produk + cabang immediately
+                if (produk && formData.cabang_id) {
+                  try {
+                    const params = new URLSearchParams({
+                      produk_id: produkId.toString(),
+                      cabang_id: formData.cabang_id.toString(),
+                    });
+                    const res = await fetch(`/api/persediaan/stock-barang/get-stock?${params}`);
+                    const json = await res.json();
+
+                    if (json.success && json.data) {
+                      setStockData(json.data);
+                      setSelectedProduk(produk || null);
+
+                      // Show calculated branch stock in preference to master
+                      setFormData({
+                        ...formData,
+                        produk_id: produkId,
+                        hpp: json.data.hpp || 0, // Use branch stock data
+                        harga_jual: json.data.harga_jual || 0,
+                        persentase: json.data.margin || 0,
+                      });
+                    } else {
+                      console.error('Failed to fetch stock data:', json.error);
+                      setStockData(null);
+                      setSelectedProduk(produk || null);
+                      setFormData({
+                        ...formData,
+                        produk_id: produkId,
+                        hpp: produk?.hpp || 0,
+                        harga_jual: produk?.harga_jual || 0,
+                        persentase: produk?.margin || 0,
+                      });
+                    }
+                  } catch (error) {
+                    console.error('Error fetching branch stock:', error);
+                    setStockData(null);
+                    setSelectedProduk(produk || null);
+                  }
+                } else {
+                  setSelectedProduk(produk || null);
+                }
               }}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
               required
             >
               <option value={0}>Pilih Produk</option>
-              {produks.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.nama_produk} ({p.kode_produk}) - Stock: {p.stok} {p.satuan}
-                </option>
-              ))}
+              {produks.map(p => {
+                // Show branch stock if available, otherwise master stock
+                const displayStock = stockData && p.id === formData.produk_id
+                  ? stockData.stock
+                  : p.stok;
+
+                return (
+                  <option key={p.id} value={p.id}>
+                    {p.nama_produk} ({p.kode_produk}) - Stock: {displayStock} {p.satuan}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
@@ -559,18 +610,24 @@ export default function ModalStockManager({
               </label>
               <input
                 type="number"
-                step="1"
+                step="0.01"
                 value={formData.jumlah || ''}
                 onChange={(e) => {
                   const rawValue = e.target.value;
-                  const parsedValue = rawValue ? parseFloat(rawValue) : 0;
-                  setFormData({ ...formData, jumlah: isNaN(parsedValue) ? 0 : parsedValue });
+                  // Allow empty string and handle non-numeric input gracefully
+                  if (rawValue === '') {
+                    setFormData({ ...formData, jumlah: 0 });
+                    return;
+                  }
+                  const parsedValue = parseFloat(rawValue);
+                  if (isNaN(parsedValue)) return; // Don't update if invalid
+                  setFormData({ ...formData, jumlah: Math.max(0, parsedValue) });
                 }}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 placeholder="0"
                 required
-                max={currentMode === 'remove' ? currentStock : undefined}
-                disabled={currentMode === 'remove' && currentStock === 0}
+                max={currentMode === 'remove' ? Math.max(0, currentStock) : undefined}
+                disabled={currentMode === 'remove' && currentStock <= 0}
                 min="0"
               />
               {currentMode === 'remove' && stockData && formData.jumlah > 0 && (

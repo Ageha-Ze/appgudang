@@ -42,9 +42,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const currentStock = parseFloat(produk.stok?.toString() || '0');
+    // ✅ FIX: Calculate current stock using branch transactions (same as overview)
+    // Don't use master produk.stok - use calculated stock per branch
+    const { data: stockTransactions } = await supabase
+      .from('stock_barang')
+      .select('jumlah, tipe')
+      .eq('produk_id', produk_id)
+      .eq('cabang_id', cabang_id);
+
+    let currentStock = 0;
+    stockTransactions?.forEach(transaction => {
+      const amount = parseFloat(transaction.jumlah?.toString() || '0');
+      if (transaction.tipe === 'masuk') {
+        currentStock += amount;
+      } else if (transaction.tipe === 'keluar') {
+        currentStock -= amount;
+      }
+    });
+
     const newStock = parseFloat(jumlah_baru);
     const selisih = newStock - currentStock;
+
+    console.log(`🔧 ADJUSTMENT CALCULATION:`);
+    console.log(`   Produk: ${produk.nama_produk} (${produk_id})`);
+    console.log(`   Cabang: ${cabang_id}`);
+    console.log(`   Current stock in database: ${produk.stok} (type: ${typeof produk.stok})`);
+    console.log(`   Parsed currentStock: ${currentStock}`);
+    console.log(`   User requested target: ${jumlah_baru} (type: ${typeof jumlah_baru})`);
+    console.log(`   Parsed newStock: ${newStock}`);
+    console.log(`   Calculated difference (newStock - currentStock): ${selisih}`);
+    console.log(`   Transaction type: ${selisih > 0 ? 'MASUK' : 'KELUAR'} ${Math.abs(selisih)}`);
+
+    // Additional safety check
+    if (isNaN(currentStock) || isNaN(newStock)) {
+      throw new Error(`Invalid stock values: currentStock=${currentStock}, newStock=${newStock}`);
+    }
 
     console.log(`  📊 Stock adjustment: ${currentStock} → ${newStock} (selisih: ${selisih})`);
 

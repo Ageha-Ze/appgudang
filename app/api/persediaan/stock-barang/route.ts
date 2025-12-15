@@ -344,12 +344,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // ✅ CRITICAL FIX: Format data dengan stock PER BRANCH
+    // ✅ CRITICAL FIX: Format data dengan stock PER BRANCH (ALL MODES)
     const formattedData = products?.map(p => {
       const history = historyMap.get(p.id) || { masuk: 0, keluar: 0 };
-      // Stock per branch: masuk - keluar untuk cabang yang difilter
-      const stock = cabang_id > 0 ? (history.masuk - history.keluar)
-                                  : parseFloat(p.stok?.toString() || '0'); // Global stock for all cabang view
+      // Stock calculation: ALWAYS use masuk - keluar (accurate transactional stock)
+      const stock = history.masuk - history.keluar;
+
       const hpp = parseFloat(p.hpp?.toString() || '0');
       const harga_jual = parseFloat(p.harga?.toString() || '0');
 
@@ -366,7 +366,7 @@ export async function GET(request: NextRequest) {
         nama_produk: p.nama_produk,
         kode_produk: p.kode_produk,
         satuan: p.satuan || 'Kg',
-        stock: displayStock, // ✅ Precise decimal handling for Kg products
+        stock: displayStock, // ✅ REAL STOCK: masuk - keluar from transactions
         stock_masuk: history.masuk,
         stock_keluar: history.keluar,
         hpp: hpp,
@@ -377,6 +377,16 @@ export async function GET(request: NextRequest) {
         has_negative: displayStock < 0,
       };
     }) || [];
+
+    // 🔍 DEBUG: Log first 3 items for decode calculation
+    if (formattedData.length > 0) {
+      console.log('📊 First 3 stock calculations:');
+      formattedData.slice(0, 3).forEach((item, idx) => {
+        console.log(`  ${idx + 1}. ${item.nama_produk}:`);
+        console.log(`    Stock: ${item.stock} (Masuk: ${item.stock_masuk} - Keluar: ${item.stock_keluar})`);
+        console.log(`    Result: ${item.stock_masuk} - ${item.stock_keluar} = ${item.stock}`);
+      });
+    }
 
     const totalRecords = count || 0;
     const totalPages = Math.ceil(totalRecords / limit);
