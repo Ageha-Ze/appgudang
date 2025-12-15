@@ -7,6 +7,7 @@ import { usePermissions, ReadOnlyBanner } from '@/components/PermissionGuard';
 import PermissionGuard from '@/components/PermissionGuard';
 import ModalTambahPenjualan from './ModalTambahPenjualan';
 import ModalPrintNota from './ModalPrintNota';
+import { customToast } from '@/lib/toast';
 
 interface Penjualan {
   id: number;
@@ -171,21 +172,8 @@ export default function PenjualanListPage() {
 
       if (json.success) {
         console.log('✅ Delete successful:', json);
-        // Success message
-        const successDiv = document.createElement('div');
-        successDiv.className = 'fixed top-4 right-4 bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-lg shadow-lg z-50 flex items-center gap-3';
-        successDiv.innerHTML = `
-          <span class="text-green-600">✅</span>
-          <div>
-            <p class="font-semibold">Berhasil Dihapus!</p>
-            <p class="text-sm">Data penjualan telah dihapus dan saldo kas dikembalikan.</p>
-          </div>
-          <button onclick="this.parentElement.remove()" class="text-green-700 hover:text-green-900 font-bold">×</button>
-        `;
-        document.body.appendChild(successDiv);
-
-        // Auto-remove after 5 seconds
-        setTimeout(() => successDiv.remove(), 5000);
+        // Show success toast
+        customToast.success('Data penjualan telah dihapus dan saldo kas dikembalikan.');
 
         // Refresh data
         await fetchPenjualans();

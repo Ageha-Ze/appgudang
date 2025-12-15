@@ -5,6 +5,7 @@ import { Package, Plus, Minus, Edit, History, Download, Search, X, List, LayoutG
 import { usePermissions, ReadOnlyBanner } from '@/components/PermissionGuard';
 import ModalStockManager from './ModalStockManager';
 import ModalHistory from './ModalHistory';
+import { customToast } from '@/lib/toast';
 
 
 interface StockItem {
@@ -168,18 +169,7 @@ export default function StockBarangPage() {
       document.body.removeChild(a);
 
       // Success notification
-      const successDiv = document.createElement('div');
-      successDiv.className = 'fixed top-4 right-4 bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-lg shadow-lg z-50 flex items-center gap-3';
-      successDiv.innerHTML = `
-        <span class="text-green-600">✅</span>
-        <div>
-          <p class="font-semibold">Export Berhasil!</p>
-          <p class="text-sm">File Excel telah berhasil diunduh.</p>
-        </div>
-        <button onclick="this.parentElement.remove()" class="text-green-700 hover:text-green-900 font-bold">×</button>
-      `;
-      document.body.appendChild(successDiv);
-      setTimeout(() => successDiv.remove(), 5000);
+      customToast.success('Success!');
 
     } catch (error: any) {
       console.error('Export error:', error);
@@ -261,24 +251,8 @@ export default function StockBarangPage() {
           const resetJson = await resetRes.json();
 
           if (resetJson.success) {
-            // Success notification
-            const successDiv = document.createElement('div');
-            successDiv.className = 'fixed top-4 right-4 bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-lg shadow-lg z-50 flex items-center gap-3 min-w-[400px]';
-            successDiv.innerHTML = `
-              <span class="text-green-600">✅</span>
-              <div class="flex-1">
-                <p class="font-semibold">Reset & Rebuild Berhasil!</p>
-                <p class="text-sm">Stock telah berhasil direbuild dari transaksi.</p>
-                <div class="mt-2 text-xs space-y-1">
-                  <p>• Pembelian: ${resetJson.insert_results.pembelian}</p>
-                  <p>• Produksi: ${resetJson.insert_results.produksi}</p>
-                  <p class="text-red-600">• Error: ${resetJson.insert_results.errors.length}</p>
-                </div>
-              </div>
-              <button onclick="this.parentElement.remove()" class="text-green-700 hover:text-green-900 font-bold">×</button>
-            `;
-            document.body.appendChild(successDiv);
-            setTimeout(() => successDiv.remove(), 8000);
+            // Success notification with detailed information
+            customToast.success('Success!');
 
             // Refresh data
             await fetchStocks();
@@ -355,19 +329,8 @@ export default function StockBarangPage() {
       const json = await res.json();
 
       if (json.success) {
-        // Success notification
-        const successDiv = document.createElement('div');
-        successDiv.className = 'fixed top-4 right-4 bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-lg shadow-lg z-50 flex items-center gap-3';
-        successDiv.innerHTML = `
-          <span class="text-green-600">✅</span>
-          <div>
-            <p class="font-semibold">Stock Dihapus!</p>
-            <p class="text-sm">Data stock <strong>${stock.nama_produk}</strong> telah berhasil dihapus.</p>
-          </div>
-          <button onclick="this.parentElement.remove()" class="text-green-700 hover:text-green-900 font-bold">×</button>
-        `;
-        document.body.appendChild(successDiv);
-        setTimeout(() => successDiv.remove(), 5000);
+        // Show success toast
+        customToast.success('Success!');
 
         // Refresh data
         await fetchStocks();
@@ -511,24 +474,7 @@ Proses ini akan memperbaiki data stock secara otomatis.
 
           if (fixJson.success) {
             // Success notification with detailed information
-            const successDiv = document.createElement('div');
-            successDiv.className = 'fixed top-4 right-4 bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-lg shadow-lg z-50 flex items-center gap-3 min-w-[450px]';
-            successDiv.innerHTML = `
-              <span class="text-green-600">🔧</span>
-              <div class="flex-1">
-                <p class="font-semibold">Stock Berhasil Diperbaiki!</p>
-                <p class="text-sm">Data stock telah diperbaiki dari transaksi yang belum tercatat.</p>
-                <div class="mt-2 text-xs space-y-1">
-                  <p>• Pembelian: ${fixJson.summary.pembelian_missing}</p>
-                  <p>• Produksi: ${fixJson.summary.produksi_missing}</p>
-                  <p>• Konsinyasi: ${fixJson.summary.penjualan_konsinyasi_missing}</p>
-                  <p class="text-orange-600">• Error: ${fixJson.summary.errors}</p>
-                </div>
-              </div>
-              <button onclick="this.parentElement.remove()" class="text-green-700 hover:text-green-900 font-bold">×</button>
-            `;
-            document.body.appendChild(successDiv);
-            setTimeout(() => successDiv.remove(), 8000);
+            customToast.success('Success!');
 
             // Refresh data
             await fetchStocks();
@@ -1090,3 +1036,4 @@ Proses ini akan memperbaiki data stock secara otomatis.
     </div>
   );
 }
+

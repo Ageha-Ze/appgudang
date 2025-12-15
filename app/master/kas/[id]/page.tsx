@@ -4,7 +4,19 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { KasData, TransaksiKasData } from '@/types/kas';
 import { getKas, getTransaksiKas } from '../actions';
-import { ArrowLeft, Banknote, Building2, Calendar, TrendingUp, TrendingDown, Search, FileText, Clock, DollarSign } from 'lucide-react';
+import { ArrowLeft, Banknote, Building2, Calendar, TrendingUp, TrendingDown, Search, FileText, Clock, DollarSign, AlertTriangle, RotateCcw } from 'lucide-react';
+
+// Extended type untuk transaksi dengan reversal info
+interface TransaksiKasWithReversal extends TransaksiKasData {
+  is_reversed?: boolean;
+  reversal_info?: {
+    reversed_at: string;
+    reversed_by: string;
+    reversal_reason: string;
+    source_module: string; // 'penjualan', 'pembelian', 'pengeluaran', etc.
+    source_transaction_id: number;
+  };
+}
 
 export default function DetailKasPage() {
   const router = useRouter();
@@ -12,12 +24,13 @@ export default function DetailKasPage() {
   const kasId = parseInt(params.id as string);
 
   const [kas, setKas] = useState<KasData | null>(null);
-  const [transaksi, setTransaksi] = useState<TransaksiKasData[]>([]);
-  const [filteredData, setFilteredData] = useState<TransaksiKasData[]>([]);
+  const [transaksi, setTransaksi] = useState<TransaksiKasWithReversal[]>([]);
+  const [filteredData, setFilteredData] = useState<TransaksiKasWithReversal[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showReversedOnly, setShowReversedOnly] = useState(false);
 
   const itemsPerPage = 10;
 
@@ -50,7 +63,7 @@ export default function DetailKasPage() {
         
         if (transaksiResult.success) {
           // Sort by date descending (newest first), then by id descending
-          const sortedData = (transaksiResult.data || []).sort((a: TransaksiKasData, b: TransaksiKasData) => {
+          const sortedData = (transaksiResult.data || []).sort((a: TransaksiKasWithReversal, b: TransaksiKasWithReversal) => {
             const dateCompare = new Date(b.tanggal_transaksi).getTime() - new Date(a.tanggal_transaksi).getTime();
             if (dateCompare !== 0) return dateCompare;
             return b.id - a.id;
@@ -73,25 +86,34 @@ export default function DetailKasPage() {
     }
   }, [kasId]);
   
-  // Search function
+  // Search and filter function
   useEffect(() => {
-    if (searchTerm === '') {
-      setFilteredData(transaksi);
-    } else {
-      const filtered = transaksi.filter((t) => {
+    let filtered = transaksi;
+
+    // Filter by reversed status
+    if (showReversedOnly) {
+      filtered = filtered.filter(t => t.is_reversed);
+    }
+
+    // Filter by search term
+    if (searchTerm !== '') {
+      filtered = filtered.filter((t) => {
         const searchLower = searchTerm.toLowerCase();
         return (
           t.id.toString().includes(searchLower) ||
           t.tanggal_transaksi.includes(searchLower) ||
           t.kredit.toString().includes(searchLower) ||
           t.debit.toString().includes(searchLower) ||
-          t.keterangan.toLowerCase().includes(searchLower)
+          t.keterangan.toLowerCase().includes(searchLower) ||
+          (t.reversal_info?.source_module.toLowerCase().includes(searchLower)) ||
+          (t.reversal_info?.reversal_reason.toLowerCase().includes(searchLower))
         );
       });
-      setFilteredData(filtered);
-      setCurrentPage(1);
     }
-  }, [searchTerm, transaksi]);
+
+    setFilteredData(filtered);
+    setCurrentPage(1);
+  }, [searchTerm, transaksi, showReversedOnly]);
 
   // Pagination
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -138,6 +160,29 @@ export default function DetailKasPage() {
       month: 'long', 
       year: 'numeric' 
     }).format(date);
+  };
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('id-ID', { 
+      day: 'numeric',
+      month: 'short', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
+
+  const getModuleBadgeColor = (module: string) => {
+    const colors: Record<string, string> = {
+      penjualan: 'bg-blue-100 text-blue-700',
+      pembelian: 'bg-purple-100 text-purple-700',
+      pengeluaran: 'bg-orange-100 text-orange-700',
+      pemasukan: 'bg-green-100 text-green-700',
+      transfer: 'bg-cyan-100 text-cyan-700',
+      lainnya: 'bg-gray-100 text-gray-700',
+    };
+    return colors[module.toLowerCase()] || colors.lainnya;
   };
 
   if (isLoading) {
@@ -187,6 +232,7 @@ export default function DetailKasPage() {
   const totalKredit = transaksi.reduce((sum, t) => sum + t.kredit, 0);
   const totalDebit = transaksi.reduce((sum, t) => sum + t.debit, 0);
   const totalTransaksi = transaksi.length;
+  const totalReversed = transaksi.filter(t => t.is_reversed).length;
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -215,7 +261,7 @@ export default function DetailKasPage() {
       )}
 
       {/* Stats Cards - Mini Version */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -248,6 +294,18 @@ export default function DetailKasPage() {
             </div>
             <div className="p-2 bg-white/20 rounded-lg">
               <TrendingDown className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg p-4 shadow-sm text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-amber-100 text-xs font-medium">Transaksi Reversed</p>
+              <p className="text-2xl font-bold mt-1">{totalReversed}</p>
+            </div>
+            <div className="p-2 bg-white/20 rounded-lg">
+              <RotateCcw className="w-5 h-5" />
             </div>
           </div>
         </div>
@@ -316,7 +374,7 @@ export default function DetailKasPage() {
             </div>
 
             {/* Total Transaksi */}
-            <div className="bg-rose-50 rounded-lg p-4 border border-rose-100">
+            <div className="bg-rose-50 rounded-lg p-4 border border-cyan-100">
               <div className="flex items-center gap-2 mb-2">
                 <Calendar className="w-4 h-4 text-rose-600" />
                 <label className="text-gray-600 text-xs font-medium">Total Transaksi</label>
@@ -341,12 +399,26 @@ export default function DetailKasPage() {
 
         {/* Content Section */}
         <div className="p-6">
-          {/* Search and Info */}
-          <div className="mb-6 flex justify-between items-center">
-            <div className="text-sm text-gray-600">
-              Menampilkan {startIndex + 1} - {Math.min(endIndex, filteredData.length)} dari {filteredData.length} data
+          {/* Search and Filter */}
+          <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-gray-600">
+                Menampilkan {startIndex + 1} - {Math.min(endIndex, filteredData.length)} dari {filteredData.length} data
+              </div>
+              
+              {/* Filter Reversed */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showReversedOnly}
+                  onChange={(e) => setShowReversedOnly(e.target.checked)}
+                  className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                />
+                <span className="text-sm text-gray-700 font-medium">Hanya Reversed</span>
+              </label>
             </div>
-            <div className="relative w-80">
+
+            <div className="relative w-full md:w-80">
               <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
@@ -368,6 +440,7 @@ export default function DetailKasPage() {
                   <th className="px-6 py-4 text-right font-semibold">Kredit</th>
                   <th className="px-6 py-4 text-right font-semibold">Debit</th>
                   <th className="px-6 py-4 text-left font-semibold">Keterangan</th>
+                  <th className="px-6 py-4 text-center font-semibold">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -377,10 +450,14 @@ export default function DetailKasPage() {
                       key={item.id}
                       className={`${
                         idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'
-                      } hover:bg-blue-50 transition-colors duration-200`}
+                      } hover:bg-blue-50 transition-colors duration-200 ${
+                        item.is_reversed ? 'opacity-60' : ''
+                      }`}
                     >
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center justify-center w-8 h-8 bg-gray-100 text-gray-700 rounded-lg font-semibold text-sm">
+                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg font-semibold text-sm ${
+                          item.is_reversed ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-700'
+                        }`}>
                           {item.id}
                         </span>
                       </td>
@@ -410,13 +487,47 @@ export default function DetailKasPage() {
                           <span className="text-gray-400">-</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-gray-900">{item.keterangan}</td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-1">
+                          <p className="text-gray-900">{item.keterangan}</p>
+                          {item.is_reversed && item.reversal_info && (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                  getModuleBadgeColor(item.reversal_info.source_module)
+                                }`}>
+                                  {item.reversal_info.source_module}
+                                </span>
+                              </div>
+                              <p className="text-xs text-orange-600 font-medium">
+                                <AlertTriangle className="w-3 h-3 inline mr-1" />
+                                {item.reversal_info.reversal_reason}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Reversed: {formatDateTime(item.reversal_info.reversed_at)} oleh {item.reversal_info.reversed_by}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {item.is_reversed ? (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-semibold">
+                            <RotateCcw className="w-3 h-3" />
+                            Reversed
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                            Aktif
+                          </span>
+                        )}
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                      {searchTerm ? 'Tidak ada data yang cocok dengan pencarian' : 'Belum ada transaksi'}
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                      {searchTerm || showReversedOnly ? 'Tidak ada data yang cocok dengan filter' : 'Belum ada transaksi'}
                     </td>
                   </tr>
                 )}

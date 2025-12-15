@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Package, Plus, Search, Trash2, Eye, Clock, CheckCircle } from 'lucide-react';
 import ModalTambahProduksi from './ModalTambahProduksi';
+import { customToast } from '@/lib/toast';
 
 interface Produksi {
   id: number;
@@ -116,19 +117,8 @@ export default function ProduksiPage() {
       const json = await res.json();
 
       if (json.success) {
-        // Success notification
-        const successDiv = document.createElement('div');
-        successDiv.className = 'fixed top-4 right-4 bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-lg shadow-lg z-50 flex items-center gap-3';
-        successDiv.innerHTML = `
-          <span class="text-green-600">✅</span>
-          <div>
-            <p class="font-semibold">Data Produksi Dihapus!</p>
-            <p class="text-sm">Data produksi berhasil dihapus dari sistem.</p>
-          </div>
-          <button onclick="this.parentElement.remove()" class="text-green-700 hover:text-green-900 font-bold">×</button>
-        `;
-        document.body.appendChild(successDiv);
-        setTimeout(() => successDiv.remove(), 5000);
+        // Show success toast
+        customToast.success('Success!');
 
         await fetchProduksis();
       } else {
@@ -414,3 +404,4 @@ export default function ProduksiPage() {
     </div>
   );
 }
+

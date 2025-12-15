@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import UIWrapper from "@/components/UIWrapper";
 import { UserProvider } from "@/contexts/UserContext";
+import { ToasterConfig } from "@/lib/toast";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <UserProvider>
           <UIWrapper>{children}</UIWrapper>
         </UserProvider>
+        <ToasterConfig />
       </body>
     </html>
   );

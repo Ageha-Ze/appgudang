@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Package, Plus, Eye, Trash2, Filter } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import ModalTambahUnloading from './ModalTambahUnloading';
+import { customToast } from '@/lib/toast';
 
 interface Cabang {
   id: number;
@@ -42,6 +43,7 @@ export default function UnloadingListPage() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search, cabangFilter]);
 
   const fetchCabang = async () => {
@@ -75,7 +77,7 @@ export default function UnloadingListPage() {
       }
     } catch (error) {
       console.error('Error fetching data:', error);
-      alert('Gagal memuat data');
+      customToast.error('Gagal memuat data');
       setData([]);
     } finally {
       setLoading(false);
@@ -99,14 +101,14 @@ export default function UnloadingListPage() {
       const json = await res.json();
       
       if (res.ok) {
-        alert('✅ Unloading berhasil dihapus dan stock dikembalikan');
+        customToast.success('Berhasil menghapus data!');
         fetchData();
       } else {
-        alert(`❌ ${json.error || 'Gagal menghapus data'}`);
+        customToast.error(json.error || 'Gagal menghapus data');
       }
     } catch (error) {
       console.error('Error deleting:', error);
-      alert('Terjadi kesalahan saat menghapus');
+      customToast.error('Terjadi kesalahan saat menghapus');
     }
   };
 
@@ -117,6 +119,100 @@ export default function UnloadingListPage() {
   const handleModalSuccess = () => {
     setIsModalOpen(false);
     fetchData();
+  };
+
+  const renderPaginationButtons = () => {
+    const buttons = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      // Show all pages if total is small
+      for (let i = 1; i <= totalPages; i++) {
+        buttons.push(
+          <button
+            key={i}
+            onClick={() => setPage(i)}
+            className={`px-3 sm:px-4 py-2 text-sm border border-indigo-300 rounded-lg transition flex-shrink-0 ${
+              page === i
+                ? 'bg-indigo-600 text-white'
+                : 'hover:bg-indigo-100'
+            }`}
+          >
+            {i}
+          </button>
+        );
+      }
+    } else {
+      // Show first page
+      buttons.push(
+        <button
+          key={1}
+          onClick={() => setPage(1)}
+          className={`px-3 sm:px-4 py-2 text-sm border border-indigo-300 rounded-lg transition flex-shrink-0 ${
+            page === 1
+              ? 'bg-indigo-600 text-white'
+              : 'hover:bg-indigo-100'
+          }`}
+        >
+          1
+        </button>
+      );
+
+      // Show dots if current page is far from start
+      if (page > 3) {
+        buttons.push(
+          <span key="dots-start" className="px-2 text-indigo-600 flex items-center">
+            ...
+          </span>
+        );
+      }
+
+      // Show pages around current page
+      const startPage = Math.max(2, page - 1);
+      const endPage = Math.min(totalPages - 1, page + 1);
+      
+      for (let i = startPage; i <= endPage; i++) {
+        buttons.push(
+          <button
+            key={i}
+            onClick={() => setPage(i)}
+            className={`px-3 sm:px-4 py-2 text-sm border border-indigo-300 rounded-lg transition flex-shrink-0 ${
+              page === i
+                ? 'bg-indigo-600 text-white'
+                : 'hover:bg-indigo-100'
+            }`}
+          >
+            {i}
+          </button>
+        );
+      }
+
+      // Show dots if current page is far from end
+      if (page < totalPages - 2) {
+        buttons.push(
+          <span key="dots-end" className="px-2 text-indigo-600 flex items-center">
+            ...
+          </span>
+        );
+      }
+
+      // Show last page
+      buttons.push(
+        <button
+          key={totalPages}
+          onClick={() => setPage(totalPages)}
+          className={`px-3 sm:px-4 py-2 text-sm border border-indigo-300 rounded-lg transition flex-shrink-0 ${
+            page === totalPages
+              ? 'bg-indigo-600 text-white'
+              : 'hover:bg-indigo-100'
+          }`}
+        >
+          {totalPages}
+        </button>
+      );
+    }
+
+    return buttons;
   };
 
   return (
@@ -197,7 +293,7 @@ export default function UnloadingListPage() {
             <div className="flex flex-col items-center gap-2 text-gray-500">
               <Package className="w-12 h-12 opacity-50" />
               <p className="font-medium">Belum ada data unloading</p>
-              <p className="text-sm">Klik tombol "Tambah Unloading" untuk mulai</p>
+              <p className="text-sm">Klik tombol &quot;Tambah Unloading&quot; untuk mulai</p>
             </div>
           </div>
         ) : (
@@ -286,7 +382,7 @@ export default function UnloadingListPage() {
                   <div className="flex flex-col items-center gap-2 text-gray-500">
                     <Package className="w-12 h-12 opacity-50" />
                     <p className="font-medium">Belum ada data unloading</p>
-                    <p className="text-sm">Klik tombol "Tambah Unloading" untuk mulai</p>
+                    <p className="text-sm">Klik tombol &quot;Tambah Unloading&quot; untuk mulai</p>
                   </div>
                 </td>
               </tr>
@@ -362,38 +458,7 @@ export default function UnloadingListPage() {
           </button>
           
           <div className="flex gap-2 overflow-x-auto max-w-full pb-2 sm:pb-0">
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const pageNum = i + 1;
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => setPage(pageNum)}
-                  className={`px-3 sm:px-4 py-2 text-sm border border-indigo-300 rounded-lg transition flex-shrink-0 ${
-                    page === pageNum
-                      ? 'bg-indigo-600 text-white'
-                      : 'hover:bg-indigo-100'
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-            
-            {totalPages > 5 && (
-              <>
-                <span className="px-2 text-indigo-600 flex items-center">...</span>
-                <button
-                  onClick={() => setPage(totalPages)}
-                  className={`px-3 sm:px-4 py-2 text-sm border border-indigo-300 rounded-lg transition flex-shrink-0 ${
-                    page === totalPages
-                      ? 'bg-indigo-600 text-white'
-                      : 'hover:bg-indigo-100'
-                  }`}
-                >
-                  {totalPages}
-                </button>
-              </>
-            )}
+            {renderPaginationButtons()}
           </div>
           
           <button

@@ -10,6 +10,12 @@ type ActionResult = {
   error?: string;
   warning?: string;
   data?: any;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 };
 
 
@@ -191,6 +197,64 @@ export async function deleteKas(id: number): Promise<ActionResult> {
   try {
     const supabase = await supabaseAuthenticated();
     
+    // Get current user info
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Ambil data kas sebelum dihapus untuk dicatat
+    const { data: kasData, error: fetchError } = await supabase
+      .from('kas')
+      .select(`
+        *,
+        cabang:cabang_id (
+          id,
+          nama_cabang
+        )
+      `)
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching kas for deletion:', fetchError);
+      return { 
+        success: false, 
+        error: fetchError.message,
+        message: 'Gagal mengambil data kas'
+      };
+    }
+
+    if (!kasData) {
+      return { 
+        success: false, 
+        error: 'Data kas tidak ditemukan',
+        message: 'Data kas tidak ditemukan'
+      };
+    }
+
+    // Catat removal ke tabel kas_removal_log
+    const removalLog = {
+      kas_id: kasData.id,
+      nama_kas: kasData.nama_kas,
+      no_rekening: kasData.no_rekening || '',
+      tipe_kas: kasData.tipe_kas || '',
+      cabang_id: kasData.cabang_id,
+      nama_cabang: kasData.cabang?.nama_cabang || '-',
+      saldo_terakhir: kasData.saldo || 0,
+      keterangan: kasData.keterangan || '',
+      deleted_by: user?.email || 'unknown',
+      deleted_at: new Date().toISOString(),
+      kas_data: kasData // Simpan seluruh data kas sebagai JSON
+    };
+
+    const { error: logError } = await supabase
+      .from('kas_removal_log')
+      .insert(removalLog);
+
+    if (logError) {
+      console.error('Error logging kas removal:', logError);
+      // Lanjutkan proses delete meskipun log gagal
+    }
+
+    // Hapus kas
     const { error } = await supabase
       .from('kas')
       .delete()
@@ -208,7 +272,7 @@ export async function deleteKas(id: number): Promise<ActionResult> {
     revalidatePath('/master/kas');
     return { 
       success: true,
-      message: 'Kas berhasil dihapus'
+      message: 'Kas berhasil dihapus dan tercatat di log'
     };
   } catch (error: any) {
     console.error('Unexpected error in deleteKas:', error);
@@ -216,6 +280,74 @@ export async function deleteKas(id: number): Promise<ActionResult> {
       success: false,
       error: error.message || 'Unknown error',
       message: 'Terjadi kesalahan saat menghapus kas'
+    };
+  }
+}
+
+// New function to get removal logs
+export async function getKasRemovalLogs(filters?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  cabang_id?: number;
+}): Promise<ActionResult> {
+  try {
+    const supabase = await supabaseAuthenticated();
+    
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 10;
+    const search = filters?.search || '';
+    const cabangId = filters?.cabang_id;
+    
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    let query = supabase
+      .from('kas_removal_log')
+      .select('*', { count: 'exact' })
+      .order('deleted_at', { ascending: false });
+
+    // Filter by search
+    if (search) {
+      query = query.or(`nama_kas.ilike.%${search}%,deleted_by.ilike.%${search}%,nama_cabang.ilike.%${search}%,no_rekening.ilike.%${search}%`);
+    }
+
+    // Filter by cabang
+    if (cabangId) {
+      query = query.eq('cabang_id', cabangId);
+    }
+
+    // Pagination
+    query = query.range(from, to);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error('Error fetching kas removal log:', error);
+      return {
+        success: false,
+        data: [],
+        error: error.message
+      };
+    }
+
+    return {
+      success: true,
+      data: data || [],
+      message: 'Data berhasil dimuat',
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
+    };
+  } catch (error: any) {
+    console.error('Unexpected error in getKasRemovalLogs:', error);
+    return {
+      success: false,
+      data: [],
+      error: error.message || 'Unknown error'
     };
   }
 }
