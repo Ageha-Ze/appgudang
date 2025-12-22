@@ -25,6 +25,7 @@ export default function ModalCicil({
     rekening: '',
     tanggal_cicilan: new Date().toISOString().split('T')[0],
     nilai_cicilan: 0,
+    tipe_cicilan: 'cicilan', // Transaction type for cicilan
     keterangan: '',
   });
 
@@ -91,6 +92,7 @@ export default function ModalCicil({
           jumlah_cicilan: formData.nilai_cicilan,
           rekening: formData.rekening,
           jenis_pembayaran: "cicilan",
+          tipe_cicilan: formData.tipe_cicilan,
           keterangan: formData.keterangan, // ✅ FIX: Gunakan value dari formData
         }),
       });
@@ -103,6 +105,7 @@ export default function ModalCicil({
           rekening: '',
           tanggal_cicilan: new Date().toISOString().split('T')[0],
           nilai_cicilan: 0,
+          tipe_cicilan: 'cash',
           keterangan: '',
         });
         onSuccess(json?.pembelian);
@@ -123,6 +126,7 @@ export default function ModalCicil({
       rekening: '',
       tanggal_cicilan: new Date().toISOString().split('T')[0],
       nilai_cicilan: 0,
+      tipe_cicilan: 'cash',
       keterangan: '',
     });
     onClose();
@@ -217,6 +221,8 @@ export default function ModalCicil({
               </p>
             )}
           </div>
+
+
 
           <div>
             <label className="block text-sm font-medium mb-1">

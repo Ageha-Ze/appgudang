@@ -161,7 +161,7 @@ export async function addKas(formData: any): Promise<ActionResult> {
 }
 
 export async function updateKas(id: number, formData: any): Promise<ActionResult> {
-  const result = await databaseOperationWithRetry(async () => {
+  try {
     const supabase = await supabaseAuthenticated();
 
     const { data, error } = await supabase
@@ -171,27 +171,27 @@ export async function updateKas(id: number, formData: any): Promise<ActionResult
       .select()
       .single();
 
-    if (error) throw error;
-    return data;
-  }, 'Update Kas');
+    if (error) {
+      console.error('Error updating kas:', error);
+      return {
+        success: false,
+        error: error.message,
+        message: 'Gagal mengupdate kas'
+      };
+    }
 
-  if (result.success) {
     revalidatePath('/master/kas');
     return {
       success: true,
-      data: result.data,
-      message: 'Kas berhasil diupdate',
-      isOffline: result.isRetry,
-      queued: result.isRetry
+      data: data,
+      message: 'Kas berhasil diupdate'
     };
-  } else {
-    console.error('Error updating kas:', result.error);
+  } catch (error: any) {
+    console.error('Unexpected error in updateKas:', error);
     return {
       success: false,
-      error: result.error,
-      message: 'Gagal mengupdate kas',
-      isOffline: true,
-      queued: true
+      error: error.message || 'Unknown error',
+      message: 'Gagal mengupdate kas'
     };
   }
 }

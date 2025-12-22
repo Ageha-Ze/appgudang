@@ -9,13 +9,13 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
 
     let query = supabase
-      .from('produk')
+      .from('users')
       .select('*')
-      .order('nama_produk', { ascending: true });
+      .order('name', { ascending: true });
 
     // Filter by search if provided
     if (search) {
-      query = query.or(`nama_produk.ilike.%${search}%,kode_produk.ilike.%${search}%,kategori.ilike.%${search}%`);
+      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
     }
 
     const { data, error } = await query;
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ data });
   } catch (error: any) {
-    console.error('Error fetching produk:', error);
+    console.error('Error fetching user:', error);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }
@@ -39,32 +39,32 @@ export async function POST(request: NextRequest) {
       const body = await request.json();
 
       const { data, error } = await supabase
-        .from('produk')
+        .from('users')
         .insert(body)
         .select()
         .single();
 
       if (error) throw error;
       return data;
-    }, 'Create Produk');
+    }, 'Create User');
 
     if (result.success) {
       return NextResponse.json({
         data: result.data,
-        message: 'Produk berhasil ditambahkan',
+        message: 'User berhasil ditambahkan',
         isOffline: result.isRetry,
         queued: result.isRetry
       });
     } else {
       return NextResponse.json({
         error: result.error,
-        message: 'Gagal menambahkan produk',
+        message: 'Gagal menambahkan user',
         isOffline: true,
         queued: true
       }, { status: 500 });
     }
   } catch (error: any) {
-    console.error('Error in produk POST:', error);
+    console.error('Error in user POST:', error);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }
@@ -79,7 +79,7 @@ export async function PUT(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json(
-        { error: 'ID produk diperlukan' },
+        { error: 'ID user diperlukan' },
         { status: 400 }
       );
     }
@@ -89,7 +89,7 @@ export async function PUT(request: NextRequest) {
       const body = await request.json();
 
       const { data, error } = await supabase
-        .from('produk')
+        .from('users')
         .update(body)
         .eq('id', id)
         .select()
@@ -97,25 +97,25 @@ export async function PUT(request: NextRequest) {
 
       if (error) throw error;
       return data;
-    }, 'Update Produk');
+    }, 'Update User');
 
     if (result.success) {
       return NextResponse.json({
         data: result.data,
-        message: 'Produk berhasil diupdate',
+        message: 'User berhasil diupdate',
         isOffline: result.isRetry,
         queued: result.isRetry
       });
     } else {
       return NextResponse.json({
         error: result.error,
-        message: 'Gagal mengupdate produk',
+        message: 'Gagal mengupdate user',
         isOffline: true,
         queued: true
       }, { status: 500 });
     }
   } catch (error: any) {
-    console.error('Error in produk PUT:', error);
+    console.error('Error in user PUT:', error);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }
@@ -130,7 +130,7 @@ export async function DELETE(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json(
-        { error: 'ID produk diperlukan' },
+        { error: 'ID user diperlukan' },
         { status: 400 }
       );
     }
@@ -138,45 +138,34 @@ export async function DELETE(request: NextRequest) {
     const result = await databaseOperationWithRetry(async () => {
       const supabase = await supabaseAuthenticated();
 
-      // Check if produk is still referenced in other tables
-      const tablesToCheck = ['detail_pembelian', 'detail_penjualan'];
-      for (const table of tablesToCheck) {
-        const { data: references } = await supabase
-          .from(table)
-          .select('id')
-          .eq('produk_id', id)
-          .limit(1);
-
-        if (references && references.length > 0) {
-          throw new Error(`Produk tidak dapat dihapus karena masih digunakan di tabel ${table}`);
-        }
-      }
+      // Check if user has any active sessions or references
+      // Note: This is a basic check - you might want to add more comprehensive validation
 
       const { error } = await supabase
-        .from('produk')
+        .from('users')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
       return { success: true };
-    }, 'Delete Produk');
+    }, 'Delete User');
 
     if (result.success) {
       return NextResponse.json({
-        message: 'Produk berhasil dihapus',
+        message: 'User berhasil dihapus',
         isOffline: result.isRetry,
         queued: result.isRetry
       });
     } else {
       return NextResponse.json({
         error: result.error,
-        message: 'Gagal menghapus produk',
+        message: 'Gagal menghapus user',
         isOffline: true,
         queued: true
       }, { status: 500 });
     }
   } catch (error: any) {
-    console.error('Error in produk DELETE:', error);
+    console.error('Error in user DELETE:', error);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }

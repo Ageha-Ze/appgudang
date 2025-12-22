@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Banknote, Plus, Search, Edit2, Trash2, Eye, Building2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { KasData } from '@/types/kas';
-import { getKas, deleteKas } from './actions';
 import KasModal from './KasModal';
 import DeleteModal from '@/components/DeleteModal';
 
@@ -27,9 +26,10 @@ export default function KasPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const result = await getKas();
-      
-      if (result.success) {
+      const response = await fetch('/api/master/kas');
+      const result = await response.json();
+
+      if (response.ok && result.data) {
         setKasList(result.data || []);
         setFilteredData(result.data || []);
       } else {
@@ -123,15 +123,24 @@ export default function KasPage() {
 
   const handleDeleteConfirm = async () => {
     if (deleteTarget) {
-      const result = await deleteKas(deleteTarget.id);
-      
-      if (result.success) {
-        setIsDeleteOpen(false);
-        setDeleteTarget(null);
-        fetchData();
-        alert(result.message || 'Kas berhasil dihapus');
-      } else {
-        alert(result.error || result.message || 'Gagal menghapus kas');
+      try {
+        const response = await fetch(`/api/master/kas?id=${deleteTarget.id}`, {
+          method: 'DELETE'
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          setIsDeleteOpen(false);
+          setDeleteTarget(null);
+          fetchData();
+          alert(result.message || 'Kas berhasil dihapus');
+        } else {
+          alert(result.error || result.message || 'Gagal menghapus kas');
+        }
+      } catch (error) {
+        console.error('Error deleting kas:', error);
+        alert('Terjadi kesalahan saat menghapus kas');
       }
     }
   };

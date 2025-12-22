@@ -72,20 +72,26 @@ export async function POST(
     );
     const finalTotal = subtotal + biaya_kirim;
 
-    // ✅ Update pembelian - ganti 'selesai' dengan enum yang valid
-    // Opsi: 'completed', 'processed', 'done', dll
+    // ✅ Update pembelian with jatuh_tempo for transfer payments
+    const updateData: any = {
+      total: subtotal,
+      biaya_kirim: biaya_kirim,
+      uang_muka: uang_muka,
+      rekening_bayar: rekening_bayar,
+      status: 'billed',
+      status_barang: 'Belum Diterima',
+      status_pembayaran: uang_muka >= finalTotal ? 'Lunas' : (uang_muka > 0 ? 'Cicil' : 'Belum Lunas'),
+      updated_at: new Date().toISOString()
+    };
+
+    // Add jatuh_tempo for transfer payments
+    if (body.jatuh_tempo && pembelian.jenis_pembayaran === 'transfer') {
+      updateData.jatuh_tempo = body.jatuh_tempo;
+    }
+
     const { error: updateError } = await supabase
       .from('transaksi_pembelian')
-      .update({
-        total: subtotal,
-        biaya_kirim: biaya_kirim,
-        uang_muka: uang_muka,
-        rekening_bayar: rekening_bayar,
-        status: 'billed', // ← GANTI SESUAI ENUM DATABASE ANDA
-        status_barang: 'Belum Diterima',
-        status_pembayaran: uang_muka >= finalTotal ? 'Lunas' : (uang_muka > 0 ? 'Cicil' : 'Belum Lunas'),
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', parseInt(pembelian_id));
 
     if (updateError) throw updateError;
@@ -114,6 +120,7 @@ export async function POST(
             jumlah_cicilan: uang_muka,
             rekening: rekening_bayar,
             type: 'uang_muka',
+            tipe_cicilan: 'uang_muka',
             keterangan: 'Uang Muka / DP saat Billing'
           });
 

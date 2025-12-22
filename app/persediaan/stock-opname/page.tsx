@@ -403,7 +403,7 @@ export default function StockOpnamePage() {
         {/* Content */}
         <div className="p-6">
           {/* Filters */}
-          <div className="mb-6 space-y-4">
+          <div className="mb-4 space-y-4">
             <div className="flex flex-wrap gap-2">
               {['all', 'pending', 'approved', 'rejected'].map((status) => (
                 <button
@@ -422,42 +422,133 @@ export default function StockOpnamePage() {
                 </button>
               ))}
             </div>
+          </div>
 
-            {/* Search */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
-              <div className="flex items-center gap-2 flex-1 sm:flex-none min-w-0">
-                <label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">Search:</label>
-                <div className="relative flex-1 sm:max-w-xs">
-                  <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Cari nama, kode..."
-                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none transition-all duration-200 shadow-sm hover:shadow-md"
-                    value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value);
-                      setPage(1);
-                    }}
-                  />
-                  {search && (
-                    <button
-                      onClick={() => {
-                        setSearch('');
-                        setPage(1);
-                      }}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      title="Clear search"
-                    >
-                      <X size={16} />
-                    </button>
-                  )}
-                </div>
-              </div>
+          {/* Search & Add Button */}
+          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6 bg-white p-3 sm:p-4 rounded-lg shadow-md">
+            <div className="flex items-center gap-2">
+              <label className="text-xs sm:text-sm font-medium text-gray-700">Search:</label>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                className="flex-1 min-w-0 px-3 py-2 text-sm border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Cari..."
+              />
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
+          {/* Mobile Cards View */}
+          <div className="block lg:hidden space-y-3">
+            {loading ? (
+              <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-gray-500 font-medium">Memuat data...</p>
+                </div>
+              </div>
+            ) : opnames.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+                <p className="text-gray-500">
+                  {search || statusFilter !== 'all' ? 'Tidak ada data yang cocok' : 'Belum ada stock opname'}
+                </p>
+              </div>
+            ) : (
+              opnames.map((item) => (
+                <div key={item.id} className="bg-white rounded-xl shadow-lg p-4 border-l-4 border-purple-500">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1 min-w-0 pr-2">
+                      <div className="font-semibold text-purple-700 truncate">{item.produk.nama_produk}</div>
+                      <div className="text-xs text-gray-500 mt-1 truncate">
+                        {item.produk.kode_produk} • {new Date(item.tanggal).toLocaleDateString('id-ID')}
+                      </div>
+                    </div>
+                    <div className="flex-shrink-0">
+                      {getStatusBadge(item.status)}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-sm mb-3">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Gudang:</span>
+                      <span className="font-medium">{item.cabang.nama_cabang}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Stock Sistem:</span>
+                      <span className="font-medium">{parseFloat(item.jumlah_sistem.toString()).toFixed(2)} Kg</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Stock Fisik:</span>
+                      <span className="font-medium">{parseFloat(item.jumlah_fisik.toString()).toFixed(2)} Kg</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Selisih:</span>
+                      <span className={`font-semibold text-lg ${
+                        item.selisih === 0
+                          ? 'text-green-600'
+                          : item.selisih > 0
+                          ? 'text-yellow-600'
+                          : 'text-red-600'
+                      }`}>
+                        {item.selisih > 0 ? '+' : ''}{parseFloat(item.selisih.toString()).toFixed(2)} Kg
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-gray-200">
+                    {item.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => handleApprove(item.id, item.produk.nama_produk)}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition text-sm"
+                        >
+                          <CheckCircle size={16} />
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handleReject(item.id, item.produk.nama_produk)}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition text-sm"
+                        >
+                          <XCircle size={16} />
+                          Reject
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id, item.produk.nama_produk)}
+                          className="flex items-center justify-center gap-2 px-3 py-2 text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition text-sm"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    )}
+                    {item.status !== 'pending' && (
+                      <>
+                        <button
+                          onClick={() => setSelectedOpname(item)}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition text-sm"
+                        >
+                          <Eye size={16} />
+                          Detail
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id, item.produk.nama_produk)}
+                          className="flex items-center justify-center gap-2 px-3 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition text-sm"
+                        >
+                          <Trash2 size={16} />
+                          Delete
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full table-auto">
               <thead className="bg-gradient-to-r from-purple-400 to-indigo-500 text-white">
                 <tr>
@@ -519,10 +610,10 @@ export default function StockOpnamePage() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <span className={`font-bold text-lg ${
-                          item.selisih === 0 
-                            ? 'text-green-600' 
-                            : item.selisih > 0 
-                            ? 'text-yellow-600' 
+                          item.selisih === 0
+                            ? 'text-green-600'
+                            : item.selisih > 0
+                            ? 'text-yellow-600'
                             : 'text-red-600'
                         }`}>
                           {item.selisih > 0 ? '+' : ''}{parseFloat(item.selisih.toString()).toFixed(2)} Kg

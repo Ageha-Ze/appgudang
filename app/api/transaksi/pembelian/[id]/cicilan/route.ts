@@ -41,19 +41,44 @@ export async function POST(
 
     // Validate and update kas saldo
     if (body.rekening) {
-      const { data: kas, error: kasError } = await supabase
-        .from('kas')
-        .select('*')
-        .eq('nama_kas', body.rekening)
-        .single();
+      let kas = null;
+      const rekeningValue = body.rekening.toString();
 
-      if (kasError) throw kasError;
+      // Try to find by ID first (if it's a number)
+      const rekeningNum = parseInt(rekeningValue, 10);
+      if (!isNaN(rekeningNum)) {
+        const { data, error } = await supabase
+          .from('kas')
+          .select('*')
+          .eq('id', rekeningNum)
+          .single();
+
+        if (!error && data) {
+          kas = data;
+        }
+      }
+
+      // If not found by ID, try by nama_kas
       if (!kas) {
+        const { data, error } = await supabase
+          .from('kas')
+          .select('*')
+          .eq('nama_kas', rekeningValue)
+          .single();
+
+        if (!error && data) {
+          kas = data;
+        }
+      }
+
+      // If still not found, return error
+      if (!kas) {
+        console.error('Kas lookup failed for rekening:', rekeningValue);
         return NextResponse.json({ error: 'Data kas tidak ditemukan' }, { status: 404 });
       }
 
-      const kasSaldo = parseFloat(kas.saldo.toString());
-      const jumlahBayar = parseFloat(body.jumlah_cicilan.toString());
+      const kasSaldo = parseFloat(kas.saldo?.toString() || '0');
+      const jumlahBayar = parseFloat(body.jumlah_cicilan?.toString() || '0');
 
       if (kasSaldo < jumlahBayar) {
         return NextResponse.json(
@@ -82,7 +107,7 @@ export async function POST(
         });
     }
 
-    // Insert cicilan - ✅ Fix: tambahkan keterangan
+    // Insert cicilan - ✅ Fix: tambahkan keterangan dan tipe_cicilan
     const { data: cicilan, error: cicilanError } = await supabase
       .from('cicilan_pembelian')
       .insert({
@@ -91,6 +116,7 @@ export async function POST(
         jumlah_cicilan: body.jumlah_cicilan,
         rekening: body.rekening,
         type: "cicilan",  // ✅ Gunakan 'type' bukan 'tipe_cicilan'
+        tipe_cicilan: body.tipe_cicilan || 'cash', // ✅ Add tipe_cicilan field
         keterangan: body.keterangan || '' // ✅ Fix keterangan
       })
       .select()

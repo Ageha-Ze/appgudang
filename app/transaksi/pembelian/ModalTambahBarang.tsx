@@ -86,9 +86,14 @@ export default function ModalTambahBarang({ isOpen, onClose, onSuccess, pembelia
       const json = await res.json();
 
       if (res.ok) {
-        alert('Data berhasil disimpan');
-        onSuccess(json?.pembelian);
-        handleClose();
+        // Show loading spinner while processing success
+        setLoading(true);
+        setTimeout(() => {
+          alert('Data berhasil disimpan');
+          onSuccess(json?.pembelian);
+          handleClose();
+          setLoading(false);
+        }, 1000);
       } else {
         // Handle duplicate product error specifically
         if (json.errorCode === 'DUPLICATE_PRODUCT') {

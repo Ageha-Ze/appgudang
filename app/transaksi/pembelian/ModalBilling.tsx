@@ -46,7 +46,11 @@ export default function ModalBilling({ isOpen, onClose, onSuccess, pembelianData
     uang_muka: '',
     biaya_kirim: '',
     rekening_bayar: '',
+    jatuh_tempo: '',
   });
+
+  // Ensure jatuh_tempo is always controlled
+  const controlledJatuhTempo = formData.jatuh_tempo || '';
 
   const [calculatedData, setCalculatedData] = useState({
     total_harga_produk: 0,
@@ -62,6 +66,7 @@ export default function ModalBilling({ isOpen, onClose, onSuccess, pembelianData
         uang_muka: String(pembelianData.uang_muka || 0),
         biaya_kirim: String(pembelianData.biaya_kirim || 0),
         rekening_bayar: '',
+        jatuh_tempo: pembelianData.jenis_pembayaran === 'transfer' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : '', // Default 30 days for transfer
       });
       setSelectedKas(null);
     }
@@ -144,12 +149,17 @@ export default function ModalBilling({ isOpen, onClose, onSuccess, pembelianData
     setLoading(true);
 
     try {
-      const payload = {
+      const payload: any = {
         uang_muka: uangMuka,
         biaya_kirim: parseInt(formData.biaya_kirim) || 0,
         rekening_bayar: formData.rekening_bayar || null,
         suplier_id: pembelianData.suplier?.id,
       };
+
+      // Add jatuh_tempo for transfer payments
+      if (pembelianData.jenis_pembayaran === 'transfer') {
+        payload.jatuh_tempo = formData.jatuh_tempo;
+      }
 
       const res = await fetch(`/api/transaksi/pembelian/${pembelianData.id}/billing`, {
         method: 'POST',
@@ -230,6 +240,27 @@ export default function ModalBilling({ isOpen, onClose, onSuccess, pembelianData
               className="col-span-2 px-3 py-2 border rounded bg-gray-100"
             />
           </div>
+
+          {/* Jatuh Tempo - Only show for transfer payments */}
+          {pembelianData.jenis_pembayaran === 'transfer' && (
+            <div className="grid grid-cols-3 items-center gap-4">
+              <label className="font-medium">
+                Jatuh Tempo <span className="text-red-500">*</span>
+              </label>
+              <div className="col-span-2">
+                <input
+                  type="date"
+                  value={controlledJatuhTempo}
+                  onChange={(e) => setFormData({ ...formData, jatuh_tempo: e.target.value })}
+                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required={pembelianData.jenis_pembayaran === 'transfer'}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Tanggal kapan hutang pembelian harus dilunasi
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Biaya Kirim */}
           <div className="grid grid-cols-3 items-center gap-4">

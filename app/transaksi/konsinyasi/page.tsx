@@ -165,14 +165,14 @@ export default function KonsinyasiPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2">
+      <div className="flex flex-col sm:flex-row gap-2 mb-4 sm:mb-6">
         <button
           onClick={() => {
             setActiveTab('transaksi');
             setPage(1);
             setSearch('');
           }}
-          className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition whitespace-nowrap text-sm sm:text-base ${
+          className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition whitespace-nowrap text-sm sm:text-base ${
             activeTab === 'transaksi'
               ? 'bg-indigo-600 text-white shadow-lg'
               : 'bg-white text-gray-700 hover:bg-indigo-50'
@@ -187,7 +187,7 @@ export default function KonsinyasiPage() {
             setPage(1);
             setSearch('');
           }}
-          className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition whitespace-nowrap text-sm sm:text-base ${
+          className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition whitespace-nowrap text-sm sm:text-base ${
             activeTab === 'toko'
               ? 'bg-indigo-600 text-white shadow-lg'
               : 'bg-white text-gray-700 hover:bg-indigo-50'

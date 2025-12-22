@@ -27,6 +27,7 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (pembelianId: number) => void;
+  isTransitioning?: boolean;
 }
 
 interface FormDataPembelian {
@@ -42,7 +43,7 @@ interface FormDataPembelian {
 }
 
 
-export default function ModalTambahPembelian({ isOpen, onClose, onSuccess }: Props) {
+export default function ModalTambahPembelian({ isOpen, onClose, onSuccess, isTransitioning = false }: Props) {
   const [loading, setLoading] = useState(false);
   const [supliers, setSupliers] = useState<Suplier[]>([]);
   const [cabangs, setCabangs] = useState<Cabang[]>([]);
@@ -201,8 +202,9 @@ export default function ModalTambahPembelian({ isOpen, onClose, onSuccess }: Pro
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
         {/* Header */}
         <div className="sticky top-0 bg-yellow-100 px-6 py-4 border-b flex items-center justify-between">
           <h2 className="text-xl font-bold">TAMBAH PEMBELIAN BARANG</h2>
@@ -381,7 +383,18 @@ export default function ModalTambahPembelian({ isOpen, onClose, onSuccess }: Pro
             </button>
           </div>
         </form>
+
+        {/* Loading Overlay during transition */}
+        {isTransitioning && (
+          <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center rounded-lg">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-gray-600 font-medium">Menuju ke Detail Pembelian...</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
+    </>
   );
 }

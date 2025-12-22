@@ -326,11 +326,11 @@ export default function TambahKonsinyasiPage() {
               <label className="block text-gray-700 font-medium mb-2">
                 Toko <span className="text-red-500">*</span>
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <select
                   value={formData.toko_id}
                   onChange={(e) => setFormData({ ...formData, toko_id: e.target.value })}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 max-w-full truncate"
                 >
                   <option value="">-- Pilih Toko --</option>
                   {tokoList.map((toko) => (
@@ -342,9 +342,10 @@ export default function TambahKonsinyasiPage() {
                 <button
                   type="button"
                   onClick={() => setShowTokoModal(true)}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition whitespace-nowrap"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition whitespace-nowrap self-start sm:self-auto flex items-center gap-2"
                 >
                   <Plus size={20} />
+                  Tambah Toko
                 </button>
               </div>
             </div>

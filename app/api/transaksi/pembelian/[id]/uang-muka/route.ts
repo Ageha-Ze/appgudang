@@ -97,6 +97,7 @@ export async function PATCH(
           jumlah_cicilan: uang_muka_baru,
           rekening: rekening_bayar,
           type: 'uang_muka',
+          tipe_cicilan: 'uang_muka',
           keterangan: 'Uang Muka (Updated)'
         });
 

@@ -484,8 +484,95 @@ export default function PiutangPenjualanPage() {
 </div>
 
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Mobile Cards View */}
+      <div className="block lg:hidden space-y-3">
+        {loading ? (
+          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-gray-500 font-medium">Memuat data piutang...</p>
+            </div>
+          </div>
+        ) : filteredData.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+            <p className="text-gray-500">Tidak ada data piutang penjualan</p>
+          </div>
+        ) : (
+          filteredData.map((item) => (
+            <div key={item.id} className="bg-white rounded-xl shadow-lg p-4 border-l-4 border-blue-500">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex-1 min-w-0 pr-2">
+                  <div className="font-semibold text-blue-700 truncate">{item.nota}</div>
+                  <div className="text-xs text-gray-500 mt-1 truncate">
+                    {item.customer} • {item.tanggal}
+                  </div>
+                </div>
+                <div className="flex-shrink-0">
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    item.status === 'Belum Lunas'
+                      ? 'bg-red-100 text-red-800'
+                      : item.status === 'Cicil'
+                      ? 'bg-orange-100 text-orange-800'
+                      : 'bg-green-100 text-green-800'
+                  }`}>
+                    {item.status}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2 text-sm mb-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Cabang:</span>
+                  <span className="font-medium">{item.cabang}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Total Piutang:</span>
+                  <span className="font-semibold text-blue-700">
+                    {formatRupiah(item.totalPiutang)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Terbayar:</span>
+                  <span className="font-semibold text-green-600">
+                    {formatRupiah(item.terbayar)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Sisa:</span>
+                  <span className="font-semibold text-orange-600">
+                    {formatRupiah(item.sisaPiutang)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Progress:</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-green-600 h-2 rounded-full transition-all"
+                        style={{ width: `${item.persenPembayaran}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-xs font-medium text-gray-600">{item.persenPembayaran}%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-3 border-t border-gray-200">
+                <button
+                  onClick={() => handleShowDetail(item)}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition text-sm"
+                >
+                  <Eye size={16} />
+                  Detail
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-100 border-b">
@@ -521,7 +608,7 @@ export default function PiutangPenjualanPage() {
                   <td className="px-6 py-4">
                     <div className="flex flex-col items-center">
                       <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
-                        <div 
+                        <div
                           className="bg-green-600 h-2 rounded-full transition-all"
                           style={{ width: `${item.persenPembayaran}%` }}
                         ></div>
@@ -531,9 +618,11 @@ export default function PiutangPenjualanPage() {
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                      item.status === 'Belum Lunas' 
-                        ? 'bg-red-100 text-red-800' 
-                        : 'bg-orange-100 text-orange-800'
+                      item.status === 'Belum Lunas'
+                        ? 'bg-red-100 text-red-800'
+                        : item.status === 'Cicil'
+                        ? 'bg-orange-100 text-orange-800'
+                        : 'bg-green-100 text-green-800'
                     }`}>
                       {item.status}
                     </span>
@@ -562,107 +651,107 @@ export default function PiutangPenjualanPage() {
 
       {/* Detail Modal */}
       {showDetailModal && selectedPiutang && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-800">Detail Piutang Penjualan</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-800">Detail Piutang Penjualan</h2>
               <button
                 onClick={() => setShowDetailModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition"
+                className="p-1 sm:p-2 hover:bg-gray-100 rounded-full transition"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {/* Info Penjualan */}
-              <div className="grid grid-cols-2 gap-4 mb-6 bg-gray-50 p-4 rounded-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6 bg-gray-50 p-3 sm:p-4 rounded-lg">
                 <div>
-                  <p className="text-sm text-gray-600">No. Nota</p>
-                  <p className="font-semibold text-gray-900">{selectedPiutang.nota}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">No. Nota</p>
+                  <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedPiutang.nota}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Tanggal</p>
-                  <p className="font-semibold text-gray-900">{selectedPiutang.tanggal}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Tanggal</p>
+                  <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedPiutang.tanggal}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Cabang</p>
-                  <p className="font-semibold text-gray-900">{selectedPiutang.cabang}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Cabang</p>
+                  <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedPiutang.cabang}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Customer</p>
-                  <p className="font-semibold text-gray-900">{selectedPiutang.customer}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Customer</p>
+                  <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedPiutang.customer}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">No. Telp</p>
-                  <p className="font-semibold text-gray-900">{selectedPiutang.customerTelp || '-'}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">No. Telp</p>
+                  <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedPiutang.customerTelp || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Jatuh Tempo</p>
-                  <p className="font-semibold text-gray-900">{selectedPiutang.jatuhTempo}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Jatuh Tempo</p>
+                  <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedPiutang.jatuhTempo}</p>
                 </div>
               </div>
 
               {/* Ringkasan Piutang */}
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-700 mb-1">Total Piutang</p>
-                  <p className="text-xl font-bold text-blue-900">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-200">
+                  <p className="text-xs sm:text-sm text-blue-700 mb-1">Total Piutang</p>
+                  <p className="text-lg sm:text-xl font-bold text-blue-900">
                     {formatRupiah(selectedPiutang.totalPiutang)}
                   </p>
                 </div>
-                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                  <p className="text-sm text-green-700 mb-1">Sudah Dibayar</p>
-                  <p className="text-xl font-bold text-green-900">
+                <div className="bg-green-50 p-3 sm:p-4 rounded-lg border border-green-200">
+                  <p className="text-xs sm:text-sm text-green-700 mb-1">Sudah Dibayar</p>
+                  <p className="text-lg sm:text-xl font-bold text-green-900">
                     {formatRupiah(selectedPiutang.terbayar)}
                   </p>
                 </div>
-                <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                  <p className="text-sm text-orange-700 mb-1">Sisa Piutang</p>
-                  <p className="text-xl font-bold text-orange-900">
+                <div className="bg-orange-50 p-3 sm:p-4 rounded-lg border border-orange-200">
+                  <p className="text-xs sm:text-sm text-orange-700 mb-1">Sisa Piutang</p>
+                  <p className="text-lg sm:text-xl font-bold text-orange-900">
                     {formatRupiah(selectedPiutang.sisaPiutang)}
                   </p>
                 </div>
               </div>
 
               {/* Riwayat Pembayaran */}
-              <div className="mb-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">Riwayat Pembayaran</h3>
+              <div className="mb-4 sm:mb-6">
+                <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-3 sm:mb-4">Riwayat Pembayaran</h3>
                 {selectedPiutang.pembayaran && selectedPiutang.pembayaran.length > 0 ? (
                   <div className="overflow-x-auto">
-                    <table className="w-full border border-gray-200 rounded-lg">
+                    <table className="w-full border border-gray-200 rounded-lg text-sm">
                       <thead className="bg-gray-100">
                         <tr>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Tanggal</th>
-                          <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Jumlah</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Keterangan</th>
+                          <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold text-gray-700">Tanggal</th>
+                          <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-semibold text-gray-700">Jumlah</th>
+                          <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold text-gray-700">Keterangan</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {selectedPiutang.pembayaran.map((bayar, idx) => (
                           <tr key={idx} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm text-gray-900">{bayar.tanggal}</td>
-                            <td className="px-4 py-3 text-sm text-green-600 text-right font-semibold">
+                            <td className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900">{bayar.tanggal}</td>
+                            <td className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-green-600 text-right font-semibold">
                               {formatRupiah(bayar.jumlah)}
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-900">{bayar.keterangan}</td>
+                            <td className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900">{bayar.keterangan}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <p className="text-gray-500">Belum ada pembayaran</p>
+                  <div className="text-center py-6 sm:py-8 bg-gray-50 rounded-lg">
+                    <p className="text-gray-500 text-sm sm:text-base">Belum ada pembayaran</p>
                   </div>
                 )}
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-3 justify-end">
+              <div className="flex flex-col sm:flex-row gap-3 justify-end">
                 <button
                   onClick={() => setShowDetailModal(false)}
-                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm sm:text-base"
                 >
                   Tutup
                 </button>
@@ -671,13 +760,13 @@ export default function PiutangPenjualanPage() {
                 {selectedPiutang.status !== 'Lunas' && selectedPiutang.sisaPiutang > 0 ? (
                   <button
                     onClick={handleShowPembayaran}
-                    className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm sm:text-base"
                   >
                     <Plus className="w-4 h-4" />
                     Input Pembayaran
                   </button>
                 ) : (
-                  <div className="flex items-center gap-2 px-6 py-2 bg-green-100 text-green-800 rounded-lg">
+                  <div className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2 bg-green-100 text-green-800 rounded-lg text-sm sm:text-base">
                     <Check className="w-4 h-4" />
                     ✓ Piutang Sudah Lunas
                   </div>

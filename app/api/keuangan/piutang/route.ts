@@ -39,12 +39,12 @@ export async function GET(request: NextRequest) {
           no_hp,
           alamat
         ),
-        detail_penjualan!inner (
+        detail_penjualan (
           id,
           subtotal
         )
       `)
-      .eq('jenis_pembayaran', 'hutang')
+      .neq('jenis_pembayaran', 'transfer')
       .order('tanggal', { ascending: false });
 
     if (cabangId && cabangId !== 'all') {
@@ -60,14 +60,19 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: piutangData, error } = await query;
-    
+
     if (error) {
       console.error('Supabase error:', error);
+      console.error('Error details:', error.details);
+      console.error('Error hint:', error.hint);
+      console.error('Error code:', error.code);
       return NextResponse.json(
-        { error: 'Database error', details: error.message },
+        { error: 'Database error', details: error.message, hint: error.hint, code: error.code },
         { status: 500 }
       );
     }
+
+    console.log('Piutang data fetched successfully:', piutangData?.length || 0, 'records');
 
     // 🔥 FIX: Ambil semua cicilan untuk setiap piutang
     const piutangIds = (piutangData || []).map(p => p.id);
@@ -170,7 +175,7 @@ export async function POST(request: NextRequest) {
           subtotal
         )
       `)
-      .eq('jenis_pembayaran', 'hutang')
+      .neq('jenis_pembayaran', 'tunai')
       .in('status_pembayaran', ['Belum Lunas', 'Cicil']);
 
     if (cabangId && cabangId !== 'all') {
