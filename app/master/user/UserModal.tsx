@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Modal from '@/components/Modal';
 import { UserData } from '@/types/user';
-import { addUser, updateUser } from './actions';
 import { User, Lock, Shield } from 'lucide-react';
 
 interface UserModalProps {
@@ -95,12 +94,43 @@ export default function UserModal({ isOpen, onClose, user, onSuccess }: UserModa
         data.password = formData.password;
       }
 
-      let result;
+      let response;
       if (user) {
-        result = await updateUser(user.id, data);
+        response = await fetch(`/api/master/user?id=${user.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
       } else {
-        result = await addUser(data as { username: string; password: string; level: string });
+        response = await fetch('/api/master/user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
       }
+
+      if (!response.ok) {
+        let errorMessage = 'Terjadi kesalahan';
+
+        if (response.status === 401) {
+          errorMessage = 'Sesi login telah berakhir. Silakan login kembali.';
+        } else if (response.status === 403) {
+          errorMessage = 'Anda tidak memiliki akses untuk menyimpan data user.';
+        } else {
+          const errorJson = await response.json().catch(() => null);
+          if (errorJson?.error) {
+            errorMessage = errorJson.error;
+          }
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
 
       if (result.success) {
         alert(result.message || 'Berhasil menyimpan data');
@@ -114,7 +144,7 @@ export default function UserModal({ isOpen, onClose, user, onSuccess }: UserModa
           updatePassword: false,
         });
       } else {
-        alert(result.error || result.message || 'Terjadi kesalahan');
+        throw new Error(result.error || 'Gagal menyimpan data user');
       }
     } catch (error) {
       console.error('Error submitting form:', error);

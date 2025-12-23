@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Modal from '@/components/Modal';
 import { PegawaiData } from '@/types/pegawai';
-import { addPegawai, updatePegawai, getCabangList, getUserList } from './actions';
 
 interface PegawaiModalProps {
   isOpen: boolean;
@@ -39,10 +38,36 @@ export default function PegawaiModal({ isOpen, onClose, pegawai, onSuccess }: Pe
       setError(null);
       
       try {
-        const [cabangData, userData] = await Promise.all([
-          getCabangList(),
-          getUserList()
+        console.log('[Modal] Loading cabang and users...');
+        
+        // Fetch cabang and users using API routes
+        const [cabangResponse, userResponse] = await Promise.all([
+          fetch('/api/master/pegawai?type=cabang', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }),
+          fetch('/api/master/pegawai?type=users', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
         ]);
+        
+        console.log('[Modal] Cabang response status:', cabangResponse.status);
+        console.log('[Modal] Users response status:', userResponse.status);
+        
+        if (!cabangResponse.ok || !userResponse.ok) {
+          throw new Error('Failed to load data');
+        }
+        
+        const cabangData = await cabangResponse.json();
+        const userData = await userResponse.json();
+        
+        console.log('[Modal] Cabang data:', cabangData);
+        console.log('[Modal] Users data:', userData);
         
         if (cabangData.success) {
           setCabangList(cabangData.data || []);
@@ -57,8 +82,8 @@ export default function PegawaiModal({ isOpen, onClose, pegawai, onSuccess }: Pe
         }
         
       } catch (err: any) {
-        console.error('Error loading data:', err);
-        setError('Terjadi kesalahan saat memuat data');
+        console.error('[Modal] Error loading data:', err);
+        setError(`Terjadi kesalahan saat memuat data: ${err.message}`);
       } finally {
         setIsLoadingData(false);
       }
@@ -133,12 +158,42 @@ export default function PegawaiModal({ isOpen, onClose, pegawai, onSuccess }: Pe
         user_id: formData.user_id ? parseInt(formData.user_id) : null,
       };
 
-      let result;
+      console.log('[Modal] Submitting data:', data);
+      console.log('[Modal] Is update?', !!pegawai);
+
+      let response;
       if (pegawai) {
-        result = await updatePegawai(pegawai.id, data);
+        // Update existing pegawai
+        console.log('[Modal] Updating pegawai ID:', pegawai.id);
+        response = await fetch(`/api/master/pegawai?id=${pegawai.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
       } else {
-        result = await addPegawai(data);
+        // Add new pegawai
+        console.log('[Modal] Creating new pegawai');
+        response = await fetch('/api/master/pegawai', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
       }
+
+      console.log('[Modal] Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Modal] Response not OK:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('[Modal] Result:', result);
 
       if (result.success) {
         onSuccess();
@@ -164,8 +219,8 @@ export default function PegawaiModal({ isOpen, onClose, pegawai, onSuccess }: Pe
         setError(errorMessage);
       }
     } catch (err: any) {
-      console.error('Error submitting form:', err);
-      setError(err.message || 'Terjadi kesalahan saat menyimpan data');
+      console.error('[Modal] Error submitting form:', err);
+      setError(`Terjadi kesalahan saat menyimpan data: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Search, Users, Shield, User, Crown, Filter, Download, MoreVertical } from 'lucide-react';
 import { UserData } from '@/types/user';
-import { getUsers, deleteUser } from './actions';
+
 import UserModal from './UserModal';
 import DeleteModal from '@/components/DeleteModal';
 
@@ -20,9 +20,23 @@ export default function UserPage() {
   const itemsPerPage = 8;
 
   const fetchData = async () => {
-    const data = await getUsers();
-    setUsers(data);
-    setFilteredData(data);
+    try {
+      const response = await fetch('/api/master/user');
+      const result = await response.json();
+
+      if (result.success) {
+        setUsers(result.data || []);
+        setFilteredData(result.data || []);
+      } else {
+        console.error('Error fetching users:', result.error);
+        setUsers([]);
+        setFilteredData([]);
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+      setUsers([]);
+      setFilteredData([]);
+    }
   };
 
   useEffect(() => {
@@ -67,10 +81,24 @@ export default function UserPage() {
 
   const handleDeleteConfirm = async () => {
     if (deleteTarget) {
-      await deleteUser(deleteTarget.id);
-      setIsDeleteOpen(false);
-      setDeleteTarget(null);
-      fetchData();
+      try {
+        const response = await fetch(`/api/master/user?id=${deleteTarget.id}`, {
+          method: 'DELETE',
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          setIsDeleteOpen(false);
+          setDeleteTarget(null);
+          fetchData();
+          alert(result.message || 'User berhasil dihapus');
+        } else {
+          alert(result.error || 'Gagal menghapus user');
+        }
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        alert('Terjadi kesalahan saat menghapus user');
+      }
     }
   };
 
@@ -236,8 +264,91 @@ export default function UserPage() {
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
+          {/* Mobile Cards View */}
+          <div className="block lg:hidden space-y-4">
+            {currentData.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                {searchTerm ? 'Tidak ada data yang cocok dengan pencarian' : 'Belum ada data'}
+              </div>
+            ) : (
+              currentData.map((user, idx) => {
+                const levelStyle = getLevelBadge(user.level);
+                const LevelIcon = levelStyle.icon;
+
+                return (
+                  <div key={user.id} className="bg-gradient-to-br from-blue-400 via-purple-500 to-indigo-600 rounded-2xl shadow-xl p-5 text-white relative overflow-hidden">
+                    {/* Background Pattern */}
+                    <div className="absolute inset-0 opacity-10">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
+                      <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12"></div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="relative z-10">
+                      {/* Header */}
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <p className="text-xs text-blue-100 mb-1">👤 Username</p>
+                          <p className="font-mono text-base font-bold">{user.username}</p>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                            {user.username.substring(0, 2).toUpperCase()}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* User Info */}
+                      <div className="space-y-2.5 mb-4">
+                        <div className="flex items-start gap-2">
+                          <span className="text-lg">🆔</span>
+                          <div className="flex-1">
+                            <p className="text-xs text-blue-100">User ID</p>
+                            <p className="text-sm font-semibold">{user.id}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Divider */}
+                      <div className="h-px bg-white/20 my-4"></div>
+
+                      {/* Level Badge */}
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="text-base">🏷️</span>
+                        <div>
+                          <p className="text-xs text-blue-100">Level Akses</p>
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${levelStyle.bg} ${levelStyle.text} ${levelStyle.border}`}>
+                            <LevelIcon className="w-3.5 h-3.5" />
+                            {user.level}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEdit(user)}
+                          className="flex-1 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-3 py-2.5 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 border border-white/30"
+                        >
+                          <Edit2 size={16} />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(user)}
+                          className="bg-red-500/80 hover:bg-red-600 text-white px-3 py-2.5 rounded-xl text-sm font-semibold transition border border-red-400"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">

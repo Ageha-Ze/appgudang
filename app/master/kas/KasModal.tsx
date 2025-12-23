@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import Modal from '@/components/Modal';
 import { KasData } from '@/types/kas';
-import { addKas, updateKas, getCabangList } from './actions';
+// ❌ HAPUS IMPORT INI:
+// import { addKas, updateKas, getCabangList } from './actions';
 
 interface KasModalProps {
   isOpen: boolean;
@@ -25,22 +26,29 @@ export default function KasModal({ isOpen, onClose, kas, onSuccess }: KasModalPr
     cabang_id: '',
   });
 
+  // ✅ GANTI DENGAN FETCH API
   useEffect(() => {
     const loadCabang = async () => {
       setIsLoadingData(true);
       setError(null);
       
       try {
-        const result = await getCabangList();
+        const response = await fetch('/api/master/cabang');
         
-        if (result.success) {
+        if (!response.ok) {
+          throw new Error('Gagal memuat data cabang');
+        }
+
+        const result = await response.json();
+        
+        if (result.success || result.data) {
           setCabangList(result.data || []);
         } else {
-          setError(result.error || 'Gagal memuat data cabang');
+          throw new Error(result.error || 'Gagal memuat data cabang');
         }
       } catch (err: any) {
         console.error('Error loading cabang:', err);
-        setError('Terjadi kesalahan saat memuat data cabang');
+        setError(err.message || 'Terjadi kesalahan saat memuat data cabang');
       } finally {
         setIsLoadingData(false);
       }
@@ -72,6 +80,7 @@ export default function KasModal({ isOpen, onClose, kas, onSuccess }: KasModalPr
     setError(null);
   }, [kas, isOpen]);
 
+  // ✅ GANTI DENGAN FETCH API
   const handleSubmit = async () => {
     // Validation
     if (!formData.nama_kas) {
@@ -84,7 +93,6 @@ export default function KasModal({ isOpen, onClose, kas, onSuccess }: KasModalPr
       return;
     }
 
-    // Validate saldo is not negative and is a valid number (0 is allowed)
     const saldoValue = parseFloat(formData.saldo) || 0;
     if (saldoValue < 0) {
       setError('Saldo tidak boleh negatif');
@@ -95,11 +103,9 @@ export default function KasModal({ isOpen, onClose, kas, onSuccess }: KasModalPr
       return;
     }
 
-    // Validate tipe_kas is one of the allowed values (enum values: 'bank', 'kas_tunai')
-    const allowedTipeKas = ['bank', 'kas_tunai'];
+    const allowedTipeKas = ['bank', 'tunai'];
     if (!formData.tipe_kas || !allowedTipeKas.includes(formData.tipe_kas)) {
-      console.error('Invalid tipe_kas:', formData.tipe_kas);
-      setError('Tipe Kas harus dipilih antara Bank atau Cash');
+      setError('Tipe Kas harus dipilih antara Bank atau Tunai');
       return;
     }
 
@@ -115,22 +121,46 @@ export default function KasModal({ isOpen, onClose, kas, onSuccess }: KasModalPr
         cabang_id: formData.cabang_id ? parseInt(formData.cabang_id) : null,
       };
 
-      let result;
+      let response;
+
       if (kas) {
-        result = await updateKas(kas.id, data);
+        // UPDATE
+        response = await fetch(`/api/master/kas?id=${kas.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
       } else {
-        result = await addKas(data);
+        // CREATE
+        response = await fetch('/api/master/kas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
       }
 
-      if (result.success) {
-        onSuccess();
-        onClose();
-        if (result.message) {
-          alert(result.message);
-        }
-      } else {
-        setError(result.error || result.message || 'Terjadi kesalahan');
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || result.message || 'Terjadi kesalahan');
       }
+
+      // Success notification
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-lg shadow-lg z-50 flex items-center gap-3';
+      successDiv.innerHTML = `
+        <span class="text-green-600">✅</span>
+        <div>
+          <p class="font-semibold">${kas ? 'Kas Berhasil Diupdate!' : 'Kas Berhasil Ditambahkan!'}</p>
+          <p class="text-sm">${data.nama_kas} telah disimpan dalam sistem.</p>
+        </div>
+        <button onclick="this.parentElement.remove()" class="text-green-700 hover:text-green-900 font-bold">×</button>
+      `;
+      document.body.appendChild(successDiv);
+      setTimeout(() => successDiv.remove(), 5000);
+
+      onSuccess();
+      onClose();
     } catch (err: any) {
       console.error('Error submitting form:', err);
       setError(err.message || 'Terjadi kesalahan saat menyimpan data');
@@ -201,7 +231,7 @@ export default function KasModal({ isOpen, onClose, kas, onSuccess }: KasModalPr
           >
             <option value="">Pilih Tipe Kas</option>
             <option value="bank">Bank</option>
-            <option value="kas_tunai">Cash</option>
+            <option value="tunai">Tunai</option>
           </select>
         </div>
 
@@ -227,14 +257,11 @@ export default function KasModal({ isOpen, onClose, kas, onSuccess }: KasModalPr
             value={formData.saldo}
             onChange={(e) => {
               const value = e.target.value;
-              // Allow empty values, or validate as number
               if (value === '' || (!isNaN(Number(value)) && Number(value) >= 0)) {
                 setFormData({ ...formData, saldo: value });
               }
-              // Ignore invalid inputs (negative numbers, scientific notation, etc.)
             }}
             onBlur={(e) => {
-              // On blur, clean up the value
               const numValue = parseFloat(e.target.value) || 0;
               setFormData({ ...formData, saldo: numValue.toFixed(2) });
             }}

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Modal from '@/components/Modal';
 import { ProdukData } from '@/types/produk';
-import { addProduk, updateProduk } from './actions';
 import { AlertCircle, Loader2, Info, Droplets } from 'lucide-react';
 
 interface ProdukModalProps {
@@ -24,8 +23,8 @@ export default function ProdukModal({ isOpen, onClose, produk, onSuccess }: Prod
     stok: '',
     satuan: '',
     is_jerigen: false,
-    density_kg_per_liter: '1.0', // 🆕 Default density
-    allow_manual_conversion: false, // 🆕
+    density_kg_per_liter: '1.0',
+    allow_manual_conversion: false,
   });
 
   useEffect(() => {
@@ -38,8 +37,8 @@ export default function ProdukModal({ isOpen, onClose, produk, onSuccess }: Prod
         stok: produk.stok.toString(),
         satuan: produk.satuan,
         is_jerigen: produk.is_jerigen ?? false,
-        density_kg_per_liter: produk.density_kg_per_liter?.toString() || '1.0', // 🆕
-        allow_manual_conversion: produk.allow_manual_conversion ?? false, // 🆕
+        density_kg_per_liter: produk.density_kg_per_liter?.toString() || '1.0',
+        allow_manual_conversion: produk.allow_manual_conversion ?? false,
       });
     } else {
       setFormData({
@@ -69,7 +68,6 @@ export default function ProdukModal({ isOpen, onClose, produk, onSuccess }: Prod
     return `${prefix}${timestamp}`;
   };
 
-  // 🆕 Auto-suggest density based on product name
   const suggestDensity = (namaProduk: string): number => {
     const name = namaProduk.toLowerCase();
     
@@ -78,10 +76,9 @@ export default function ProdukModal({ isOpen, onClose, produk, onSuccess }: Prod
     if (name.includes('minyak') || name.includes('oil') || name.includes('zaitun') || name.includes('olive')) return 0.92;
     if (name.includes('susu') || name.includes('milk')) return 1.03;
     
-    return 1.0; // default
+    return 1.0;
   };
 
-  // 🆕 Calculate preview conversion
   const calculateConversionPreview = (): string => {
     const density = parseFloat(formData.density_kg_per_liter);
     if (isNaN(density) || density <= 0) return '10 KG → ? ML';
@@ -104,7 +101,6 @@ export default function ProdukModal({ isOpen, onClose, produk, onSuccess }: Prod
       return;
     }
 
-    // 🆕 Validate density for KG products
     const density = parseFloat(formData.density_kg_per_liter);
     if (formData.satuan === 'Kg' && (isNaN(density) || density <= 0)) {
       setError('Density harus diisi dengan nilai positif untuk produk KG');
@@ -114,7 +110,6 @@ export default function ProdukModal({ isOpen, onClose, produk, onSuccess }: Prod
     setIsLoading(true);
 
     try {
-      // Generate kode_produk jika kosong (untuk produk baru)
       let kode = formData.kode_produk;
       if (!kode && !produk) {
         kode = generateKodeProduk(formData.nama_produk);
@@ -128,24 +123,55 @@ export default function ProdukModal({ isOpen, onClose, produk, onSuccess }: Prod
         stok: parseFloat(formData.stok) || 0,
         satuan: formData.satuan,
         is_jerigen: !!formData.is_jerigen,
-        density_kg_per_liter: parseFloat(formData.density_kg_per_liter) || 1.0, // 🆕
-        allow_manual_conversion: !!formData.allow_manual_conversion, // 🆕
+        density_kg_per_liter: parseFloat(formData.density_kg_per_liter) || 1.0,
+        allow_manual_conversion: !!formData.allow_manual_conversion,
       };
 
-      let result;
+      let response;
+      
+      // ✅ PERBAIKAN: Gunakan fetch API
       if (produk) {
-        result = await updateProduk(produk.id, data);
+        response = await fetch(`/api/master/produk?id=${produk.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
       } else {
-        result = await addProduk(data);
+        response = await fetch('/api/master/produk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+      }
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || result.message || 'Terjadi kesalahan');
       }
 
       if (result.success) {
+        // Success notification
+        const successDiv = document.createElement('div');
+        successDiv.className = 'fixed top-4 right-4 bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-lg shadow-lg z-50 flex items-center gap-3';
+        successDiv.innerHTML = `
+          <span class="text-green-600">✅</span>
+          <div>
+            <p class="font-semibold">${produk ? 'Produk Berhasil Diupdate!' : 'Produk Berhasil Ditambahkan!'}</p>
+            <p class="text-sm">${data.nama_produk} telah disimpan dalam sistem.</p>
+          </div>
+          <button onclick="this.parentElement.remove()" class="text-green-700 hover:text-green-900 font-bold">×</button>
+        `;
+        document.body.appendChild(successDiv);
+        setTimeout(() => successDiv.remove(), 5000);
+
         onSuccess();
         onClose();
       } else {
-        setError(result.error || result.message || 'Terjadi kesalahan');
+        throw new Error(result.error || result.message || 'Terjadi kesalahan');
       }
     } catch (err: any) {
+      console.error('Error saving produk:', err);
       setError(err.message || 'Terjadi kesalahan tidak terduga');
     } finally {
       setIsLoading(false);
@@ -170,11 +196,9 @@ export default function ProdukModal({ isOpen, onClose, produk, onSuccess }: Prod
     }
   };
 
-  // 🆕 Handle name change with auto-suggest
   const handleNameChange = (value: string) => {
     setFormData({ ...formData, nama_produk: value });
     
-    // Auto-suggest density if it's still default
     if (!produk && formData.density_kg_per_liter === '1.0') {
       const suggested = suggestDensity(value);
       if (suggested !== 1.0) {
@@ -285,7 +309,7 @@ export default function ProdukModal({ isOpen, onClose, produk, onSuccess }: Prod
           </div>
         </div>
 
-        {/* 🆕 DENSITY SECTION - Only show for KG products */}
+        {/* DENSITY SECTION - Only show for KG products */}
         {formData.satuan === 'Kg' && (
           <div className="bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-lg p-4 space-y-3">
             <div className="flex items-start gap-2">

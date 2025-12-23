@@ -270,8 +270,110 @@ export default function ProduksiPage() {
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
+          {/* Mobile Cards View */}
+          <div className="block lg:hidden space-y-4">
+            {loading ? (
+              <div className="flex flex-col items-center gap-3 py-8">
+                <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-gray-500 font-medium">Memuat data...</p>
+              </div>
+            ) : produksis.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                {search ? 'Tidak ada data yang cocok dengan pencarian' : 'Belum ada data'}
+              </div>
+            ) : (
+              produksis.map((item, idx) => (
+                <div key={item.id} className="bg-gradient-to-br from-blue-400 via-purple-500 to-indigo-600 rounded-2xl shadow-xl p-5 text-white relative overflow-hidden">
+                  {/* Background Pattern */}
+                  <div className="absolute inset-0 opacity-10">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12"></div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="relative z-10">
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-xs text-blue-100 mb-1">📦 Produk</p>
+                        <p className="font-mono text-base font-bold">{item.produk?.nama_produk || 'Produk'}</p>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          item.status === 'posted' ? 'bg-green-400 text-green-900' :
+                          item.status === 'pending' ? 'bg-yellow-400 text-yellow-900' :
+                          'bg-gray-400 text-gray-900'
+                        }`}>
+                          {item.status === 'posted' ? 'Posted' : item.status === 'pending' ? 'Pending' : item.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Production Info */}
+                    <div className="space-y-2.5 mb-4">
+                      <div className="flex items-start gap-2">
+                        <span className="text-lg">📅</span>
+                        <div className="flex-1">
+                          <p className="text-xs text-blue-100">Tanggal Produksi</p>
+                          <p className="text-sm font-semibold">{new Date(item.tanggal).toLocaleDateString('id-ID')}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">⚙️</span>
+                          <div>
+                            <p className="text-xs text-blue-100">Jumlah</p>
+                            <p className="text-sm font-semibold">{item.jumlah} {item.satuan}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">🏭</span>
+                          <div>
+                            <p className="text-xs text-blue-100">Cabang</p>
+                            <p className="text-sm font-semibold">{item.cabang?.nama_cabang || '-'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-px bg-white/20 my-4"></div>
+
+                    {/* Pegawai */}
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="text-base">👤</span>
+                      <div>
+                        <p className="text-xs text-blue-100">Pegawai Produksi</p>
+                        <p className="text-sm font-semibold">{item.pegawai?.nama || '-'}</p>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => router.push(`/gudang/produksi/${item.id}`)}
+                        className="flex-1 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-3 py-2.5 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 border border-white/30"
+                      >
+                        <Eye size={16} />
+                        Detail
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="bg-red-500/80 hover:bg-red-600 text-white px-3 py-2.5 rounded-xl text-sm font-semibold transition border border-red-400"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full table-auto">
               <thead className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white">
                 <tr>
@@ -404,4 +506,3 @@ export default function ProduksiPage() {
     </div>
   );
 }
-

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Modal from '@/components/Modal';
 import { SuplierData } from '@/types/suplier';
-import { addSuplier, updateSuplier, getCabangList } from './actions';
 
 interface SuplierModalProps {
   isOpen: boolean;
@@ -29,8 +28,15 @@ export default function SuplierModal({ isOpen, onClose, suplier, onSuccess }: Su
 
   useEffect(() => {
     const loadCabang = async () => {
-      const data = await getCabangList();
-      setCabangList(data);
+      try {
+        const response = await fetch('/api/master/cabang');
+        const result = await response.json();
+        if (result.success) {
+          setCabangList(result.data);
+        }
+      } catch (error) {
+        console.error('Error loading cabang:', error);
+      }
     };
     loadCabang();
   }, []);
@@ -84,18 +90,37 @@ export default function SuplierModal({ isOpen, onClose, suplier, onSuccess }: Su
       tanggal_order_terakhir: formData.tanggal_order_terakhir,
     };
 
-    let result;
-    if (suplier) {
-      result = await updateSuplier(suplier.id, data);
-    } else {
-      result = await addSuplier(data);
-    }
+    try {
+      let response;
+      if (suplier) {
+        response = await fetch(`/api/master/supplier?id=${suplier.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+      } else {
+        response = await fetch('/api/master/supplier', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+      }
 
-    if (result.success) {
-      onSuccess();
-      onClose();
-    } else {
-      alert(result.error || 'Terjadi kesalahan');
+      const result = await response.json();
+
+      if (response.ok && (result.message || result.data)) {
+        onSuccess();
+        onClose();
+      } else {
+        alert(result.error || 'Terjadi kesalahan');
+      }
+    } catch (error) {
+      console.error('Error submitting supplier:', error);
+      alert('Terjadi kesalahan saat menyimpan data');
     }
   };
 

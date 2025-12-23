@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Users, Plus, Search, Edit2, Trash2, Building2 } from 'lucide-react';
 import { Customer } from '@/types/customer';
-import { getCustomers, deleteCustomer } from './actions';
+import { useRouter } from 'next/navigation';
 import CustomerModal from './CustomerModal';
 import DeleteModal from '@/components/DeleteModal';
 
@@ -33,29 +33,38 @@ export default function CustomerPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const result = await getCustomers();
+      const response = await fetch('/api/master/customer');
+
+      if (!response.ok) {
+        let errorMessage = 'Gagal memuat data customer';
+
+        if (response.status === 401) {
+          errorMessage = 'Sesi login telah berakhir. Silakan login kembali.';
+        } else if (response.status === 403) {
+          errorMessage = 'Anda tidak memiliki akses untuk melihat data customer.';
+        } else if (response.status === 500) {
+          errorMessage = 'Server mengalami masalah. Silakan coba lagi dalam beberapa saat.';
+        } else {
+          const errorJson = await response.json().catch(() => null);
+          if (errorJson?.error) {
+            errorMessage += ': ' + errorJson.error;
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
 
       if (result.success) {
         setCustomers(result.data || []);
         setFilteredCustomers(result.data || []);
       } else {
-        let errorMessage = 'Gagal memuat data customer';
-        if (result.error?.includes('authentication') || result.error?.includes('401')) {
-          errorMessage = 'Sesi login telah berakhir. Silakan login kembali.';
-        } else if (result.error?.includes('authorization') || result.error?.includes('403')) {
-          errorMessage = 'Anda tidak memiliki akses untuk melihat data customer.';
-        } else if (result.error?.includes('500')) {
-          errorMessage = 'Server mengalami masalah. Silakan coba lagi dalam beberapa saat.';
-        } else if (result.error) {
-          errorMessage += ': ' + result.error;
-        }
-        setError(errorMessage);
-        setCustomers([]);
-        setFilteredCustomers([]);
+        throw new Error(result.error || 'Gagal memuat data customer');
       }
     } catch (error: any) {
       console.error('Error loading customers:', error);
-      let errorMessage = 'Terjadi kesalahan saat memuat data. Silakan periksa koneksi internet Anda.';
+      let errorMessage = error.message?.includes('Gagal memuat') ? error.message :
+        'Terjadi kesalahan saat memuat data. Silakan periksa koneksi internet Anda.';
       if (error.message?.includes('NetworkError') || error.message?.includes('ECONNREFUSED')) {
         errorMessage = 'Koneksi internet bermasalah. Tidak dapat memuat data customer.';
       }
@@ -140,7 +149,30 @@ export default function CustomerPage() {
     setError(null);
 
     try {
-      const result = await deleteCustomer(customerToDelete.id);
+      const response = await fetch(`/api/master/customer?id=${customerToDelete.id}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Gagal menghapus customer';
+
+        if (response.status === 401) {
+          errorMessage = 'Sesi login telah berakhir. Silakan login kembali.';
+        } else if (response.status === 403) {
+          errorMessage = 'Anda tidak memiliki akses untuk menghapus customer.';
+        } else if (response.status === 400) {
+          const errorJson = await response.json().catch(() => null);
+          if (errorJson?.error) {
+            errorMessage = errorJson.error;
+          }
+        } else if (response.status === 500) {
+          errorMessage = 'Server mengalami masalah. Silakan coba lagi dalam beberapa saat.';
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
 
       if (result.success) {
         await loadCustomers();
@@ -293,7 +325,102 @@ export default function CustomerPage() {
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto">
+          {/* Mobile Cards View */}
+          <div className="block lg:hidden space-y-4">
+            {isLoading ? (
+              <div className="flex flex-col items-center gap-3 py-8">
+                <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-gray-500 font-medium">Memuat data...</p>
+              </div>
+            ) : currentData.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                {searchTerm ? 'Tidak ada data yang cocok dengan pencarian' : 'Belum ada data'}
+              </div>
+            ) : (
+              currentData.map((customer, idx) => (
+                <div key={customer.id} className="bg-gradient-to-br from-blue-400 via-purple-500 to-indigo-600 rounded-2xl shadow-xl p-5 text-white relative overflow-hidden">
+                  {/* Background Pattern */}
+                  <div className="absolute inset-0 opacity-10">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12"></div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="relative z-10">
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-xs text-blue-100 mb-1">👤 Kode Customer</p>
+                        <p className="font-mono text-base font-bold">{customer.kode_customer}</p>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                          {customer.nama.substring(0, 2).toUpperCase()}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Customer Info */}
+                    <div className="space-y-2.5 mb-4">
+                      <div className="flex items-start gap-2">
+                        <span className="text-lg">🏢</span>
+                        <div className="flex-1">
+                          <p className="text-xs text-blue-100">Nama Customer</p>
+                          <p className="text-sm font-semibold">{customer.nama}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <span className="text-lg">📍</span>
+                        <div className="flex-1">
+                          <p className="text-xs text-blue-100">Alamat</p>
+                          <p className="text-sm font-semibold line-clamp-2">{customer.alamat || '-'}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">📞</span>
+                          <div>
+                            <p className="text-xs text-blue-100">No. HP</p>
+                            <p className="text-sm font-semibold">{customer.no_hp || '-'}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">🏪</span>
+                          <div>
+                            <p className="text-xs text-blue-100">Kantor</p>
+                            <p className="text-sm font-semibold">{customer.cabang?.nama_cabang || '-'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEditCustomer(customer)}
+                        className="flex-1 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-3 py-2.5 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 border border-white/30"
+                      >
+                        <Edit2 size={16} />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(customer)}
+                        className="bg-red-500/80 hover:bg-red-600 text-white px-3 py-2.5 rounded-xl text-sm font-semibold transition border border-red-400"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full table-auto">
               <thead className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white">
                 <tr>

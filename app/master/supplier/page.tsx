@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Search, Truck, Building2, Mail } from 'lucide-react';
 import { SuplierData } from '@/types/suplier';
-import { getSuplier, deleteSuplier } from './actions';
 import SuplierModal from './SuplierModal';
 import DeleteModal from '@/components/DeleteModal';
 
@@ -23,9 +22,12 @@ export default function SuplierPage() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const data = await getSuplier();
-      setSupliers(data);
-      setFilteredData(data);
+      const response = await fetch('/api/master/supplier');
+      const result = await response.json();
+      if (result.data) {
+        setSupliers(result.data);
+        setFilteredData(result.data);
+      }
     } catch (error) {
       console.error('Error loading supliers:', error);
     } finally {
@@ -105,10 +107,17 @@ export default function SuplierPage() {
 
   const handleDeleteConfirm = async () => {
     if (deleteTarget) {
-      await deleteSuplier(deleteTarget.id);
-      setIsDeleteOpen(false);
-      setDeleteTarget(null);
-      fetchData();
+      try {
+        await fetch(`/api/master/supplier?id=${deleteTarget.id}`, {
+          method: 'DELETE',
+        });
+        setIsDeleteOpen(false);
+        setDeleteTarget(null);
+        fetchData();
+      } catch (error) {
+        console.error('Error deleting supplier:', error);
+        alert('Terjadi kesalahan saat menghapus supplier');
+      }
     }
   };
 
@@ -197,7 +206,114 @@ export default function SuplierPage() {
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto">
+          {/* Mobile Cards View */}
+          <div className="block lg:hidden space-y-4">
+            {isLoading ? (
+              <div className="flex flex-col items-center gap-3 py-8">
+                <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-gray-500 font-medium">Memuat data...</p>
+              </div>
+            ) : currentData.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                {searchTerm ? 'Tidak ada data yang cocok dengan pencarian' : 'Belum ada data'}
+              </div>
+            ) : (
+              currentData.map((suplier, idx) => (
+                <div key={suplier.id} className="bg-gradient-to-br from-blue-400 via-purple-500 to-indigo-600 rounded-2xl shadow-xl p-5 text-white relative overflow-hidden">
+                  {/* Background Pattern */}
+                  <div className="absolute inset-0 opacity-10">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12"></div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="relative z-10">
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-xs text-blue-100 mb-1">🏢 Kode Suplier</p>
+                        <p className="font-mono text-base font-bold">SPL-{String(suplier.id).padStart(3, '0')}</p>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                          {suplier.nama.substring(0, 2).toUpperCase()}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Suplier Info */}
+                    <div className="space-y-2.5 mb-4">
+                      <div className="flex items-start gap-2">
+                        <span className="text-lg">🚛</span>
+                        <div className="flex-1">
+                          <p className="text-xs text-blue-100">Nama Suplier</p>
+                          <p className="text-sm font-semibold">{suplier.nama}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <span className="text-lg">📍</span>
+                        <div className="flex-1">
+                          <p className="text-xs text-blue-100">Alamat</p>
+                          <p className="text-sm font-semibold line-clamp-2">{suplier.alamat}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">📞</span>
+                          <div>
+                            <p className="text-xs text-blue-100">No. Telp</p>
+                            <p className="text-sm font-semibold">{suplier.no_telp}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">🏢</span>
+                          <div>
+                            <p className="text-xs text-blue-100">Kantor</p>
+                            <p className="text-sm font-semibold">{suplier.cabang?.nama_cabang || '-'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-px bg-white/20 my-4"></div>
+
+                    {/* Email */}
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="text-base">✉️</span>
+                      <div>
+                        <p className="text-xs text-blue-100">Email</p>
+                        <p className="text-sm font-semibold">{suplier.email || '-'}</p>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEdit(suplier)}
+                        className="flex-1 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-3 py-2.5 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 border border-white/30"
+                      >
+                        <Edit2 size={16} />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(suplier)}
+                        className="bg-red-500/80 hover:bg-red-600 text-white px-3 py-2.5 rounded-xl text-sm font-semibold transition border border-red-400"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full table-auto">
               <thead className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white">
                 <tr>

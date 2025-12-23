@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAuthenticated } from '@/lib/supabaseServer';
-import { databaseOperationWithRetry } from '@/lib/apiRetry';
 
+// GET - List semua produk
 export async function GET(request: NextRequest) {
   try {
     const supabase = await supabaseAuthenticated();
@@ -13,65 +13,91 @@ export async function GET(request: NextRequest) {
       .select('*')
       .order('nama_produk', { ascending: true });
 
-    // Filter by search if provided
     if (search) {
-      query = query.or(`nama_produk.ilike.%${search}%,kode_produk.ilike.%${search}%,kategori.ilike.%${search}%`);
+      query = query.or(`nama_produk.ilike.%${search}%,kode_produk.ilike.%${search}%`);
     }
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching produk:', error);
+      return NextResponse.json(
+        { error: error.message, success: false },
+        { status: 500 }
+      );
+    }
 
-    return NextResponse.json({ data });
+    return NextResponse.json({
+      success: true,
+      data: data || []
+    });
   } catch (error: any) {
-    console.error('Error fetching produk:', error);
+    console.error('Error in produk GET:', error);
     return NextResponse.json(
-      { error: error.message },
+      { error: error.message, success: false },
       { status: 500 }
     );
   }
 }
 
+// POST - Tambah produk baru
 export async function POST(request: NextRequest) {
   try {
-    const result = await databaseOperationWithRetry(async () => {
-      const supabase = await supabaseAuthenticated();
-      const body = await request.json();
+    const supabase = await supabaseAuthenticated();
+    const body = await request.json();
 
-      const { data, error } = await supabase
-        .from('produk')
-        .insert(body)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    }, 'Create Produk');
-
-    if (result.success) {
-      return NextResponse.json({
-        data: result.data,
-        message: 'Produk berhasil ditambahkan',
-        isOffline: result.isRetry,
-        queued: result.isRetry
-      });
-    } else {
-      return NextResponse.json({
-        error: result.error,
-        message: 'Gagal menambahkan produk',
-        isOffline: true,
-        queued: true
-      }, { status: 500 });
+    // Generate kode_produk jika tidak ada
+    let kodeProduk = body.kode_produk;
+    if (!kodeProduk) {
+      const prefix = body.nama_produk
+        .split(' ')
+        .map((word: string) => word.charAt(0).toUpperCase())
+        .join('')
+        .substring(0, 3)
+        .padEnd(3, 'X');
+      const timestamp = Date.now().toString().slice(-4);
+      kodeProduk = `${prefix}${timestamp}`;
     }
+
+    const { data, error } = await supabase
+      .from('produk')
+      .insert({
+        kode_produk: kodeProduk,
+        nama_produk: body.nama_produk,
+        harga: body.harga || 0,
+        hpp: body.hpp || null,
+        stok: body.stok || 0,
+        satuan: body.satuan,
+        is_jerigen: body.is_jerigen || false,
+        density_kg_per_liter: body.density_kg_per_liter || 1.0,
+        allow_manual_conversion: body.allow_manual_conversion || false,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating produk:', error);
+      return NextResponse.json(
+        { error: error.message, success: false },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: data,
+      message: 'Produk berhasil ditambahkan'
+    });
   } catch (error: any) {
     console.error('Error in produk POST:', error);
     return NextResponse.json(
-      { error: error.message },
+      { error: error.message, success: false },
       { status: 500 }
     );
   }
 }
 
+// PUT - Update produk
 export async function PUT(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -79,50 +105,53 @@ export async function PUT(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json(
-        { error: 'ID produk diperlukan' },
+        { error: 'ID produk diperlukan', success: false },
         { status: 400 }
       );
     }
 
-    const result = await databaseOperationWithRetry(async () => {
-      const supabase = await supabaseAuthenticated();
-      const body = await request.json();
+    const supabase = await supabaseAuthenticated();
+    const body = await request.json();
 
-      const { data, error } = await supabase
-        .from('produk')
-        .update(body)
-        .eq('id', id)
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from('produk')
+      .update({
+        nama_produk: body.nama_produk,
+        harga: body.harga || 0,
+        hpp: body.hpp || null,
+        stok: body.stok || 0,
+        satuan: body.satuan,
+        is_jerigen: body.is_jerigen || false,
+        density_kg_per_liter: body.density_kg_per_liter || 1.0,
+        allow_manual_conversion: body.allow_manual_conversion || false,
+      })
+      .eq('id', id)
+      .select()
+      .single();
 
-      if (error) throw error;
-      return data;
-    }, 'Update Produk');
-
-    if (result.success) {
-      return NextResponse.json({
-        data: result.data,
-        message: 'Produk berhasil diupdate',
-        isOffline: result.isRetry,
-        queued: result.isRetry
-      });
-    } else {
-      return NextResponse.json({
-        error: result.error,
-        message: 'Gagal mengupdate produk',
-        isOffline: true,
-        queued: true
-      }, { status: 500 });
+    if (error) {
+      console.error('Error updating produk:', error);
+      return NextResponse.json(
+        { error: error.message, success: false },
+        { status: 500 }
+      );
     }
+
+    return NextResponse.json({
+      success: true,
+      data: data,
+      message: 'Produk berhasil diupdate'
+    });
   } catch (error: any) {
     console.error('Error in produk PUT:', error);
     return NextResponse.json(
-      { error: error.message },
+      { error: error.message, success: false },
       { status: 500 }
     );
   }
 }
 
+// DELETE - Hapus produk
 export async function DELETE(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -130,55 +159,67 @@ export async function DELETE(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json(
-        { error: 'ID produk diperlukan' },
+        { error: 'ID produk diperlukan', success: false },
         { status: 400 }
       );
     }
 
-    const result = await databaseOperationWithRetry(async () => {
-      const supabase = await supabaseAuthenticated();
+    const supabase = await supabaseAuthenticated();
 
-      // Check if produk is still referenced in other tables
-      const tablesToCheck = ['detail_pembelian', 'detail_penjualan'];
-      for (const table of tablesToCheck) {
-        const { data: references } = await supabase
-          .from(table)
-          .select('id')
-          .eq('produk_id', id)
-          .limit(1);
+    // Check if produk is still referenced
+    const { data: detailPembelian } = await supabase
+      .from('detail_pembelian')
+      .select('id')
+      .eq('produk_id', id)
+      .limit(1);
 
-        if (references && references.length > 0) {
-          throw new Error(`Produk tidak dapat dihapus karena masih digunakan di tabel ${table}`);
-        }
-      }
+    const { data: detailPenjualan } = await supabase
+      .from('detail_penjualan')
+      .select('id')
+      .eq('produk_id', id)
+      .limit(1);
 
-      const { error } = await supabase
-        .from('produk')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      return { success: true };
-    }, 'Delete Produk');
-
-    if (result.success) {
-      return NextResponse.json({
-        message: 'Produk berhasil dihapus',
-        isOffline: result.isRetry,
-        queued: result.isRetry
-      });
-    } else {
-      return NextResponse.json({
-        error: result.error,
-        message: 'Gagal menghapus produk',
-        isOffline: true,
-        queued: true
-      }, { status: 500 });
+    if (detailPembelian && detailPembelian.length > 0) {
+      return NextResponse.json(
+        { 
+          error: 'Produk tidak dapat dihapus karena sudah digunakan dalam transaksi pembelian',
+          success: false 
+        },
+        { status: 400 }
+      );
     }
+
+    if (detailPenjualan && detailPenjualan.length > 0) {
+      return NextResponse.json(
+        { 
+          error: 'Produk tidak dapat dihapus karena sudah digunakan dalam transaksi penjualan',
+          success: false 
+        },
+        { status: 400 }
+      );
+    }
+
+    const { error } = await supabase
+      .from('produk')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting produk:', error);
+      return NextResponse.json(
+        { error: error.message, success: false },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Produk berhasil dihapus'
+    });
   } catch (error: any) {
     console.error('Error in produk DELETE:', error);
     return NextResponse.json(
-      { error: error.message },
+      { error: error.message, success: false },
       { status: 500 }
     );
   }

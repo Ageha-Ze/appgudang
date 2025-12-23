@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { KasData, TransaksiKasData } from '@/types/kas';
-import { getKas, getTransaksiKas } from '../actions';
 import { ArrowLeft, Banknote, Building2, Calendar, TrendingUp, TrendingDown, Search, FileText, Clock, DollarSign, AlertTriangle, RotateCcw } from 'lucide-react';
 
 // Extended type untuk transaksi dengan reversal info
@@ -34,6 +33,7 @@ export default function DetailKasPage() {
 
   const itemsPerPage = 10;
 
+ // ✅ GANTI DENGAN FETCH API
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -41,7 +41,13 @@ export default function DetailKasPage() {
         setError(null);
 
         // Fetch kas data
-        const kasResult = await getKas();
+        const kasResponse = await fetch('/api/master/kas');
+        
+        if (!kasResponse.ok) {
+          throw new Error('Gagal memuat data kas');
+        }
+
+        const kasResult = await kasResponse.json();
         
         if (kasResult.success) {
           const selectedKas = kasResult.data.find((k: KasData) => k.id === kasId);
@@ -59,7 +65,13 @@ export default function DetailKasPage() {
         }
 
         // Fetch transaksi data
-        const transaksiResult = await getTransaksiKas(kasId);
+        const transaksiResponse = await fetch(`/api/master/kas/${kasId}/transaksi`);
+        
+        if (!transaksiResponse.ok) {
+          throw new Error('Gagal memuat data transaksi');
+        }
+
+        const transaksiResult = await transaksiResponse.json();
         
         if (transaksiResult.success) {
           // Sort by date descending (newest first), then by id descending
@@ -73,9 +85,9 @@ export default function DetailKasPage() {
         } else {
           setError(transaksiResult.error || 'Gagal memuat data transaksi');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error loading data:', error);
-        setError('Terjadi kesalahan saat memuat data');
+        setError(error.message || 'Terjadi kesalahan saat memuat data');
       } finally {
         setIsLoading(false);
       }
@@ -211,7 +223,7 @@ export default function DetailKasPage() {
       </div>
     );
   }
-
+  
   if (!kas) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -358,9 +370,13 @@ export default function DetailKasPage() {
                 <label className="text-gray-600 text-xs font-medium">Tipe Kas</label>
               </div>
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                kas.tipe_kas.toLowerCase() === 'bank' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                kas.tipe_kas.toLowerCase() === 'bank' ? 'bg-green-100 text-green-700' :
+                kas.tipe_kas.toLowerCase() === 'tunai' ? 'bg-yellow-100 text-yellow-700' :
+                'bg-gray-100 text-gray-700'
               }`}>
-                {kas.tipe_kas}
+                {kas.tipe_kas.toLowerCase() === 'bank' ? 'Bank' :
+                 kas.tipe_kas.toLowerCase() === 'tunai' || kas.tipe_kas.toLowerCase() === 'tunai' ? 'Tunai' :
+                 kas.tipe_kas}
               </span>
             </div>
 

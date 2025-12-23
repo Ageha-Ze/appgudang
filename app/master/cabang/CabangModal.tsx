@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Modal from '@/components/Modal';
 import { CabangData } from '@/types/cabang';
-import { addCabang, updateCabang } from './actions';
+
 
 interface CabangModalProps {
   isOpen: boolean;
@@ -104,20 +104,39 @@ export default function CabangModal({ isOpen, onClose, cabang, onSuccess }: Caba
         kapasitas_kg: parseInt(formData.kapasitas_kg) || 0,
       };
 
-      let result;
-      if (cabang) {
-        result = await updateCabang(cabang.id, data);
-      } else {
-        result = await addCabang(data);
-      }
+      try {
+        let response;
+        if (cabang) {
+          response = await fetch(`/api/master/cabang?id=${cabang.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+          });
+        } else {
+          response = await fetch('/api/master/cabang', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+          });
+        }
 
-      if (result.success) {
-        const successMessage = result.message || 'Data berhasil disimpan';
-        alert(successMessage);
-        onSuccess();
-        onClose();
-      } else {
-        setError(result.error || 'Terjadi kesalahan');
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          const successMessage = result.message || 'Data berhasil disimpan';
+          alert(successMessage);
+          onSuccess();
+          onClose();
+        } else {
+          setError(result.error || 'Terjadi kesalahan');
+        }
+      } catch (error) {
+        console.error('Error saving cabang:', error);
+        setError('Terjadi kesalahan saat menyimpan data');
       }
     } catch (error) {
       console.error('Error saving cabang:', error);

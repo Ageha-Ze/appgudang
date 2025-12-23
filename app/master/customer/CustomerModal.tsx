@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Customer } from '@/types/customer';
-import { createCustomer, updateCustomer, getCabangList } from './actions';
 
 interface CustomerModalProps {
   isOpen: boolean;
@@ -62,14 +61,20 @@ export default function CustomerModal({
   const loadCabangList = async () => {
     setIsLoadingData(true);
     setError('');
-    
+
     try {
-      const result = await getCabangList();
-      
+      const response = await fetch('/api/master/cabang');
+
+      if (!response.ok) {
+        throw new Error('Gagal memuat data cabang');
+      }
+
+      const result = await response.json();
+
       if (result.success) {
         setCabangList(result.data || []);
       } else {
-        setError(result.error || 'Gagal memuat data cabang');
+        throw new Error(result.error || 'Gagal memuat data cabang');
       }
     } catch (err) {
       console.error('Error loading cabang:', err);
@@ -91,35 +96,50 @@ export default function CustomerModal({
     setError('');
 
     try {
-      let result;
+      let response;
       if (customer) {
-        result = await updateCustomer(customer.id, formData);
+        response = await fetch(`/api/master/customer?id=${customer.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
       } else {
-        result = await createCustomer(formData);
+        response = await fetch('/api/master/customer', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
       }
+
+      if (!response.ok) {
+        let errorMessage = 'Terjadi kesalahan';
+
+        if (response.status === 401) {
+          errorMessage = 'Sesi login telah berakhir. Silakan login kembali.';
+        } else if (response.status === 403) {
+          errorMessage = 'Anda tidak memiliki akses untuk menyimpan data customer.';
+        } else {
+          const errorJson = await response.json().catch(() => null);
+          if (errorJson?.error) {
+            errorMessage = errorJson.error;
+          }
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
 
       if (result.success) {
         onSuccess();
         onClose();
-
-        let message = result.message || 'Operasi berhasil';
-        if (result.isOffline) {
-          message += ' (akan disimpan saat koneksi kembali)';
-        } else if (result.queued) {
-          message += ' (dalam antrian)';
-        }
-
-        alert(message);
+        alert(result.message || 'Operasi berhasil');
       } else {
-        let errorMessage = result.error || result.message || 'Terjadi kesalahan';
-
-        if (result.isOffline) {
-          errorMessage += ' - Operasi akan dicoba otomatis saat koneksi kembali';
-        } else if (result.queued) {
-          errorMessage += ' - Operasi telah dimasukkan ke antrian offline';
-        }
-
-        setError(errorMessage);
+        throw new Error(result.error || 'Gagal menyimpan data customer');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan');

@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAuthenticated } from '@/lib/supabaseServer';
-import { databaseOperationWithRetry } from '@/lib/apiRetry';
+
+// Definisi UserLevel sesuai dengan enum di database
+type UserLevel = 'super_admin' | 'admin' | 'keuangan' | 'kasir' | 'gudang' | 'sales';
+
+// Fungsi validasi level
+function isValidUserLevel(level: string): level is UserLevel {
+  return ['super_admin', 'admin', 'keuangan', 'kasir', 'gudang', 'sales'].includes(level);
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,22 +18,31 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('users')
       .select('*')
-      .order('name', { ascending: true });
+      .order('id', { ascending: true });
 
     // Filter by search if provided
     if (search) {
-      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+      query = query.or(`username.ilike.%${search}%`);
     }
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching users:', error);
+      return NextResponse.json(
+        { error: error.message, success: false },
+        { status: 500 }
+      );
+    }
 
-    return NextResponse.json({ data });
+    return NextResponse.json({
+      success: true,
+      data: data || []
+    });
   } catch (error: any) {
-    console.error('Error fetching user:', error);
+    console.error('Error fetching users:', error);
     return NextResponse.json(
-      { error: error.message },
+      { error: error.message, success: false },
       { status: 500 }
     );
   }
@@ -34,39 +50,48 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const result = await databaseOperationWithRetry(async () => {
-      const supabase = await supabaseAuthenticated();
-      const body = await request.json();
+    const supabase = await supabaseAuthenticated();
+    const body = await request.json();
 
-      const { data, error } = await supabase
-        .from('users')
-        .insert(body)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    }, 'Create User');
-
-    if (result.success) {
-      return NextResponse.json({
-        data: result.data,
-        message: 'User berhasil ditambahkan',
-        isOffline: result.isRetry,
-        queued: result.isRetry
-      });
-    } else {
-      return NextResponse.json({
-        error: result.error,
-        message: 'Gagal menambahkan user',
-        isOffline: true,
-        queued: true
-      }, { status: 500 });
+    // Validasi input
+    if (!body.username || !body.password) {
+      return NextResponse.json(
+        { error: 'Username dan password harus diisi', success: false },
+        { status: 400 }
+      );
     }
+
+    // Validasi level
+    if (!isValidUserLevel(body.level)) {
+      return NextResponse.json(
+        { error: `Level tidak valid. Pilih salah satu: super_admin, admin, keuangan, kasir, gudang, sales`, success: false },
+        { status: 400 }
+      );
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .insert([body])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating user:', error);
+      return NextResponse.json(
+        { error: error.message, success: false },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: data,
+      message: 'User berhasil ditambahkan'
+    });
   } catch (error: any) {
     console.error('Error in user POST:', error);
     return NextResponse.json(
-      { error: error.message },
+      { error: error.message, success: false },
       { status: 500 }
     );
   }
@@ -79,45 +104,63 @@ export async function PUT(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json(
-        { error: 'ID user diperlukan' },
+        { error: 'ID user diperlukan', success: false },
         { status: 400 }
       );
     }
 
-    const result = await databaseOperationWithRetry(async () => {
-      const supabase = await supabaseAuthenticated();
-      const body = await request.json();
+    const supabase = await supabaseAuthenticated();
+    const body = await request.json();
 
-      const { data, error } = await supabase
-        .from('users')
-        .update(body)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    }, 'Update User');
-
-    if (result.success) {
-      return NextResponse.json({
-        data: result.data,
-        message: 'User berhasil diupdate',
-        isOffline: result.isRetry,
-        queued: result.isRetry
-      });
-    } else {
-      return NextResponse.json({
-        error: result.error,
-        message: 'Gagal mengupdate user',
-        isOffline: true,
-        queued: true
-      }, { status: 500 });
+    // Validasi input
+    if (!body.username) {
+      return NextResponse.json(
+        { error: 'Username harus diisi', success: false },
+        { status: 400 }
+      );
     }
+
+    // Validasi level
+    if (!isValidUserLevel(body.level)) {
+      return NextResponse.json(
+        { error: `Level tidak valid. Pilih salah satu: super_admin, admin, keuangan, kasir, gudang, sales`, success: false },
+        { status: 400 }
+      );
+    }
+
+    const updateData: any = {
+      username: body.username,
+      level: body.level,
+    };
+
+    if (body.password) {
+      updateData.password = body.password;
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating user:', error);
+      return NextResponse.json(
+        { error: error.message, success: false },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: data,
+      message: 'User berhasil diupdate'
+    });
   } catch (error: any) {
     console.error('Error in user PUT:', error);
     return NextResponse.json(
-      { error: error.message },
+      { error: error.message, success: false },
       { status: 500 }
     );
   }
@@ -130,44 +173,37 @@ export async function DELETE(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json(
-        { error: 'ID user diperlukan' },
+        { error: 'ID user diperlukan', success: false },
         { status: 400 }
       );
     }
 
-    const result = await databaseOperationWithRetry(async () => {
-      const supabase = await supabaseAuthenticated();
+    const supabase = await supabaseAuthenticated();
 
-      // Check if user has any active sessions or references
-      // Note: This is a basic check - you might want to add more comprehensive validation
+    // Optional: Check if user is being used in other tables
+    // Add your business logic here if needed
 
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', id);
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', id);
 
-      if (error) throw error;
-      return { success: true };
-    }, 'Delete User');
-
-    if (result.success) {
-      return NextResponse.json({
-        message: 'User berhasil dihapus',
-        isOffline: result.isRetry,
-        queued: result.isRetry
-      });
-    } else {
-      return NextResponse.json({
-        error: result.error,
-        message: 'Gagal menghapus user',
-        isOffline: true,
-        queued: true
-      }, { status: 500 });
+    if (error) {
+      console.error('Error deleting user:', error);
+      return NextResponse.json(
+        { error: error.message, success: false },
+        { status: 500 }
+      );
     }
+
+    return NextResponse.json({
+      success: true,
+      message: 'User berhasil dihapus'
+    });
   } catch (error: any) {
     console.error('Error in user DELETE:', error);
     return NextResponse.json(
-      { error: error.message },
+      { error: error.message, success: false },
       { status: 500 }
     );
   }
