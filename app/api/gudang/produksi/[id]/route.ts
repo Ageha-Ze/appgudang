@@ -37,7 +37,8 @@
                item:produk (
                  id,
                  nama_produk,
-                 kode_produk
+                 kode_produk,
+                 satuan
                )
              )
            `)
@@ -97,6 +98,41 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const supabase = await supabaseAuthenticated();
+    const body = await request.json();
+    const { produk_id, jumlah, pegawai_id } = body;
+    const { id } = await params;
+
+    if (!produk_id || !jumlah || !pegawai_id) {
+      return NextResponse.json({ error: 'Field wajib tidak lengkap' }, { status: 400 });
+    }
+
+    const { data, error } = await supabase
+      .from('transaksi_produksi')
+      .update({
+        produk_id: parseInt(produk_id),
+        jumlah: parseFloat(jumlah),
+        pegawai_id: parseInt(pegawai_id),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', parseInt(id))
+      .eq('status', 'pending') // Only allow editing pending productions
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json({ data });
+  } catch (error: any) {
+    console.error('Error updating produksi:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+
 
 export async function DELETE(
   request: NextRequest, 

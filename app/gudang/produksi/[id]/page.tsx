@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Trash2, Package, Calendar, User, Building2, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Trash2, Package, Calendar, User, Building2, CheckCircle, XCircle, Edit } from 'lucide-react';
 import ModalTambahKomposisi from './ModalTambahKomposisi';
+import ModalEditKomposisi from './ModalEditKomposisi';
+import ModalEditProduksi from './ModalEditProduksi';
 
 interface DetailProduksi {
   id: number;
@@ -11,7 +13,7 @@ interface DetailProduksi {
   jumlah: number;
   hpp: number;
   subtotal: number;
-  item?: { nama_produk: string };
+  item?: { nama_produk: string; satuan?: string };
 }
 
 interface ProduksiData {
@@ -39,6 +41,9 @@ export default function DetailProduksiPage({
   const [produksi, setProduksi] = useState<ProduksiData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModalKomposisi, setShowModalKomposisi] = useState(false);
+  const [showModalEditKomposisi, setShowModalEditKomposisi] = useState(false);
+  const [showModalEditProduksi, setShowModalEditProduksi] = useState(false);
+  const [editingDetail, setEditingDetail] = useState<DetailProduksi | null>(null);
 
   useEffect(() => {
     params.then((p) => setId(p.id));
@@ -162,10 +167,21 @@ export default function DetailProduksiPage({
               <h3 className="text-2xl font-bold">Detail Produksi</h3>
               <p className="text-blue-100 mt-1">Informasi lengkap produksi</p>
             </div>
-            <div>
+            <div className="flex items-center gap-3">
+              {/* Desktop Edit Button */}
+              {isPending && (
+                <button
+                  onClick={() => setShowModalEditProduksi(true)}
+                  className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition-all duration-200 hidden sm:flex items-center gap-2"
+                  title="Edit Produksi"
+                >
+                  <Edit size={16} />
+                  <span>Edit</span>
+                </button>
+              )}
               <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium ${
-                isPosted 
-                  ? 'bg-green-500 text-white' 
+                isPosted
+                  ? 'bg-green-500 text-white'
                   : 'bg-yellow-400 text-yellow-900'
               }`}>
                 {isPosted ? <CheckCircle size={16} /> : <XCircle size={16} />}
@@ -173,6 +189,20 @@ export default function DetailProduksiPage({
               </span>
             </div>
           </div>
+
+          {/* Mobile Edit Button - Below Status */}
+          {isPending && (
+            <div className="mt-4 sm:hidden">
+              <button
+                onClick={() => setShowModalEditProduksi(true)}
+                className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 w-full justify-center"
+                title="Edit Produksi"
+              >
+                <Edit size={16} />
+                <span>Edit Produksi</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -251,9 +281,10 @@ export default function DetailProduksiPage({
           </div>
         </div>
 
-        {/* Table */}
+        {/* Desktop Table / Mobile Cards */}
         <div className="p-6">
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full table-auto">
               <thead className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white">
                 <tr>
@@ -281,7 +312,9 @@ export default function DetailProduksiPage({
                           <span className="text-gray-800 font-medium">{detail.item?.nama_produk || '-'}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right text-gray-700 font-medium">{detail.jumlah}</td>
+                      <td className="px-6 py-4 text-right text-gray-700 font-medium">
+                        {detail.jumlah} {detail.item?.satuan || 'unit'}
+                      </td>
                       <td className="px-6 py-4 text-right text-gray-700 font-medium">
                         Rp. {detail.hpp.toLocaleString('id-ID')}
                       </td>
@@ -290,13 +323,25 @@ export default function DetailProduksiPage({
                       </td>
                       {isPending && (
                         <td className="px-6 py-4 text-center">
-                          <button
-                            onClick={() => handleDeleteItem(detail.id)}
-                            className="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110"
-                            title="Hapus"
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                          <div className="flex gap-2 justify-center">
+                            <button
+                              onClick={() => {
+                                setEditingDetail(detail);
+                                setShowModalEditKomposisi(true);
+                              }}
+                              className="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110"
+                              title="Edit"
+                            >
+                              <Edit size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteItem(detail.id)}
+                              className="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110"
+                              title="Hapus"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -310,6 +355,78 @@ export default function DetailProduksiPage({
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {produksi.detail_produksi && produksi.detail_produksi.length > 0 ? (
+              produksi.detail_produksi.map((detail, idx) => (
+                <div
+                  key={detail.id}
+                  className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  {/* Card Header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                        {(detail.item?.nama_produk || 'I').substring(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-800 text-sm">{detail.item?.nama_produk || '-'}</h4>
+                        <p className="text-xs text-gray-500">Item Komposisi</p>
+                      </div>
+                    </div>
+                    {isPending && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingDetail(detail);
+                            setShowModalEditKomposisi(true);
+                          }}
+                          className="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition-all duration-200 shadow-md hover:shadow-lg"
+                          title="Edit"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteItem(detail.id)}
+                          className="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg"
+                          title="Hapus"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card Content */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/70 rounded-lg p-3 border border-blue-100">
+                      <p className="text-xs text-gray-500 mb-1">Quantity</p>
+                      <p className="font-semibold text-gray-800">
+                        {detail.jumlah} {detail.item?.satuan || 'unit'}
+                      </p>
+                    </div>
+
+                    <div className="bg-white/70 rounded-lg p-3 border border-blue-100">
+                      <p className="text-xs text-gray-500 mb-1">COGS</p>
+                      <p className="font-semibold text-gray-800">Rp. {detail.hpp.toLocaleString('id-ID')}</p>
+                    </div>
+
+                    <div className="bg-white/70 rounded-lg p-3 border border-blue-100 col-span-2">
+                      <p className="text-xs text-gray-500 mb-1">Subtotal</p>
+                      <p className="font-bold text-lg text-blue-600">Rp. {detail.subtotal.toLocaleString('id-ID')}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <Package size={48} className="mx-auto mb-4 text-gray-300" />
+                <p className="font-medium">Belum ada item komposisi</p>
+                <p className="text-sm">Tambahkan item untuk memulai produksi</p>
+              </div>
+            )}
           </div>
 
           {/* Total */}
@@ -362,6 +479,23 @@ export default function DetailProduksiPage({
         onSuccess={fetchDetail}
         produksiId={parseInt(id)}
         cabangId={produksi.cabang_id}
+      />
+      <ModalEditKomposisi
+        isOpen={showModalEditKomposisi}
+        onClose={() => {
+          setShowModalEditKomposisi(false);
+          setEditingDetail(null);
+        }}
+        onSuccess={fetchDetail}
+        produksiId={parseInt(id)}
+        cabangId={produksi.cabang_id}
+        editingDetail={editingDetail}
+      />
+      <ModalEditProduksi
+        isOpen={showModalEditProduksi}
+        onClose={() => setShowModalEditProduksi(false)}
+        onSuccess={fetchDetail}
+        produksiData={produksi}
       />
     </div>
   );

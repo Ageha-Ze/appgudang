@@ -30,16 +30,16 @@ export default function ModalTambahProduksi({ isOpen, onClose, onSuccess }: Moda
 
   useEffect(() => {
     if (isOpen) {
-      setProduks([]); // reset dulu, belum pilih cabang
+      fetchProduks(); // Fetch all products from master/produk
       fetchPegawais();
       fetchCabangs();
       // Reset form
-      setForm({ 
-        tanggal: new Date().toISOString().split('T')[0], 
-        cabang_id: '', 
-        produk_id: '', 
-        pegawai_id: '', 
-        jumlah: '', 
+      setForm({
+        tanggal: new Date().toISOString().split('T')[0],
+        cabang_id: '',
+        produk_id: '',
+        pegawai_id: '',
+        jumlah: '',
         satuan: 'kg'
       });
     }
@@ -47,43 +47,38 @@ export default function ModalTambahProduksi({ isOpen, onClose, onSuccess }: Moda
 
   useEffect(() => {
     if (form.cabang_id) {
-      fetchProduks(form.cabang_id);
       fetchPegawaisByCabang(form.cabang_id); // Filter pegawai by cabang
     } else {
-      setProduks([]); // Clear products when no cabang selected
       setPegawais([]); // Clear pegawai when no cabang selected
     }
   }, [form.cabang_id]);
 
-  const fetchProduks = async (cabangId: string) => {
-    if (!cabangId) return;
+  const fetchProduks = async () => {
     try {
       setLoadingProduks(true);
-      console.log('🔍 Fetching produk for cabang ID:', cabangId);
-      const url = `/api/gudang/produksi/produk/${cabangId}`;
-      console.log('📡 URL:', url);
-      
-      const res = await fetch(url);
+      console.log('🔍 Fetching all products from master/produk');
+
+      const res = await fetch('/api/master/produk');
       console.log('📥 Response status:', res.status);
-      
+
       const json = await res.json();
       console.log('📦 Full response:', json);
       console.log('📊 Data array:', json.data);
       console.log('📈 Data length:', json.data?.length);
-      
+
       if (!res.ok) {
         console.error('❌ API Error:', json.error);
         alert(`Error dari API: ${json.error}`);
         setProduks([]);
         return;
       }
-      
+
       const products = json.data || [];
       console.log('✅ Products to set:', products);
       setProduks(products);
-      
+
       if (products.length === 0) {
-        console.warn('⚠️ No products returned from API for cabang:', cabangId);
+        console.warn('⚠️ No products returned from master/produk API');
       }
     } catch (error) {
       console.error('💥 Error fetching produk:', error);

@@ -11,50 +11,64 @@ interface Produk {
   hpp: number;
 }
 
-interface ModalTambahKomposisiProps {
+interface DetailProduksi {
+  id: number;
+  item_id: number;
+  jumlah: number;
+  hpp: number;
+  subtotal: number;
+  item?: { nama_produk: string; satuan?: string };
+}
+
+interface ModalEditKomposisiProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   produksiId: number;
   cabangId: number;
+  editingDetail: DetailProduksi | null;
 }
 
-interface KomposisiItem {
-  item_id: number;
-  jumlah: number;
-  produk?: {
-    nama_produk?: string;
-    satuan?: string;
-  };
-}
-
-export default function ModalTambahKomposisi({
+export default function ModalEditKomposisi({
   isOpen,
   onClose,
   onSuccess,
   produksiId,
-  cabangId
-}: ModalTambahKomposisiProps) {
+  cabangId,
+  editingDetail
+}: ModalEditKomposisiProps) {
   const [form, setForm] = useState({ item_id: '', jumlah: '' });
   const [produks, setProduks] = useState<Produk[]>([]);
   const [selectedProduk, setSelectedProduk] = useState<Produk | null>(null);
   const [hpp, setHpp] = useState<number>(0);
   const [subtotal, setSubtotal] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [existingKomposisi, setExistingKomposisi] = useState<KomposisiItem[]>([]);
   const [stockError, setStockError] = useState('');
 
   // Fetch produk saat modal dibuka
   useEffect(() => {
     if (isOpen && cabangId) {
       fetchProduks();
-      // Reset form saat modal dibuka
-      setForm({ item_id: '', jumlah: '' });
-      setSelectedProduk(null);
-      setHpp(0);
-      setSubtotal(0);
     }
   }, [isOpen, cabangId]);
+
+  // Populate form when editingDetail changes
+  useEffect(() => {
+    if (isOpen && editingDetail) {
+      setForm({
+        item_id: editingDetail.item_id.toString(),
+        jumlah: editingDetail.jumlah.toString()
+      });
+      setHpp(editingDetail.hpp);
+      setSubtotal(editingDetail.subtotal);
+
+      // Find and set selected product
+      if (produks.length > 0) {
+        const selected = produks.find(p => p.produk_id === editingDetail.item_id);
+        setSelectedProduk(selected || null);
+      }
+    }
+  }, [isOpen, editingDetail, produks]);
 
   // Hitung subtotal dan validasi stock saat jumlah berubah
   useEffect(() => {
@@ -78,13 +92,13 @@ export default function ModalTambahKomposisi({
 
   const fetchProduks = async () => {
     try {
-      console.log('=== FAST FETCHING PRODUCTS FROM STOCK ===');
+      console.log('=== FETCHING PRODUCTS FROM STOCK ===');
       console.log('Cabang ID:', cabangId);
 
       // Use stock API for super fast fetching (denormalized data)
       const params = new URLSearchParams({
         cabang_id: cabangId.toString(),
-        mode: 'overview', // Use overview mode to get all stock data for the branch
+        mode: 'overview',
         limit: '1000'
       });
 
@@ -96,12 +110,9 @@ export default function ModalTambahKomposisi({
 
       const json = await res.json();
       console.log('📦 Stock API response:', json);
-      console.log('📊 Data items:', json.data?.length);
 
       // Transform stock data to produk format
       const stockData = json.data || [];
-      console.log('🔍 First few stock items:', stockData.slice(0, 3));
-
       const produkData: Produk[] = stockData
         .filter((item: any) => {
           const stock = parseFloat(item.stock?.toString() || '0');
@@ -118,42 +129,10 @@ export default function ModalTambahKomposisi({
       console.log('🎯 Filtered products with stock > 0:', produkData.length);
       setProduks(produkData);
 
-      if (produkData.length === 0) {
-        console.warn('⚠️ No products with stock > 0 found for cabang', cabangId);
-        console.log('Available stock data:', stockData.map((item: any) => ({
-          id: item.produk_id,
-          name: item.nama_produk,
-          stock: item.stock,
-          satuan: item.satuan
-        })));
-
-        // Try fallback: show all products from master/produk if no stock data
-        console.log('🔄 Trying fallback: fetch from master/produk');
-        try {
-          const fallbackRes = await fetch('/api/master/produk');
-          const fallbackJson = await fallbackRes.json();
-
-          if (fallbackRes.ok && fallbackJson.data?.length > 0) {
-            const fallbackProdukData: Produk[] = fallbackJson.data.map((item: any) => ({
-              produk_id: item.id,
-              nama_produk: item.nama_produk || 'Unknown Product',
-              stok: 0, // No stock info from master
-              satuan: item.satuan || 'unit',
-              hpp: parseFloat(item.hpp?.toString() || '0')
-            }));
-
-            setProduks(fallbackProdukData);
-            console.log('✅ Fallback loaded products from master:', fallbackProdukData.length);
-            alert('Menampilkan semua produk dari master (stock data belum tersedia).');
-            return;
-          }
-        } catch (fallbackError) {
-          console.warn('Fallback also failed:', fallbackError);
-        }
-
-        alert('Belum ada bahan baku dengan stock tersedia untuk cabang ini. Pastikan ada pembelian yang sudah diposting.');
-      } else {
-        console.log('✅ Successfully loaded products with stock');
+      // Set selected product after products are loaded
+      if (editingDetail && produkData.length > 0) {
+        const selected = produkData.find(p => p.produk_id === editingDetail.item_id);
+        setSelectedProduk(selected || null);
       }
     } catch (error) {
       console.error('❌ Error fetching produk from stock:', error);
@@ -163,11 +142,11 @@ export default function ModalTambahKomposisi({
 
   const handleItemChange = (itemId: string) => {
     setForm({ ...form, item_id: itemId, jumlah: '' });
-    
+
     if (itemId) {
       const selected = produks.find(p => p.produk_id === Number(itemId));
       setSelectedProduk(selected || null);
-      
+
       // Langsung set HPP dari data produk
       setHpp(selected?.hpp || 0);
     } else {
@@ -179,14 +158,19 @@ export default function ModalTambahKomposisi({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedProduk) {
       alert('Pilih item terlebih dahulu');
       return;
     }
 
+    if (!editingDetail) {
+      alert('Data edit tidak ditemukan');
+      return;
+    }
+
     const qty = parseFloat(form.jumlah);
-    
+
     if (qty <= 0) {
       alert('Jumlah harus lebih dari 0');
       return;
@@ -205,21 +189,21 @@ export default function ModalTambahKomposisi({
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/gudang/produksi/${produksiId}/details`, {
-        method: 'POST',
+      const res = await fetch(`/api/gudang/produksi/${produksiId}/details/${editingDetail.id}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           item_id: form.item_id,
           jumlah: qty,
           hpp: hpp,
-          subtotal: subtotal 
+          subtotal: subtotal
         }),
       });
 
       const responseData = await res.json();
 
       if (res.ok) {
-        alert('Item berhasil ditambahkan');
+        alert('Item berhasil diupdate');
         setForm({ item_id: '', jumlah: '' });
         setSelectedProduk(null);
         setHpp(0);
@@ -230,7 +214,7 @@ export default function ModalTambahKomposisi({
         alert('Error: ' + (responseData.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Error adding item:', error);
+      console.error('Error updating item:', error);
       alert('Terjadi kesalahan saat menyimpan data');
     } finally {
       setLoading(false);
@@ -242,8 +226,8 @@ export default function ModalTambahKomposisi({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">Tambah Komposisi Item</h2>
-        
+        <h2 className="text-xl font-bold mb-4">Edit Komposisi Item</h2>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Select Item */}
           <div>
@@ -360,9 +344,9 @@ export default function ModalTambahKomposisi({
             <button
               type="submit"
               disabled={loading || !selectedProduk || !form.jumlah || !!stockError}
-              className="flex-1 px-4 py-2 bg-violet-600 text-white rounded hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              {loading ? 'Menyimpan...' : 'Simpan'}
+              {loading ? 'Menyimpan...' : 'Update'}
             </button>
             <button
               type="button"
