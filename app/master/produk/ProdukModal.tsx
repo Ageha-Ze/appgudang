@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Modal from '@/components/Modal';
 import { ProdukData } from '@/types/produk';
 import { AlertCircle, Loader2, Info, Droplets } from 'lucide-react';
+import SingleOverlay from '../../../components/SingleOverlay';
 
 interface ProdukModalProps {
   isOpen: boolean;
@@ -212,11 +213,12 @@ export default function ProdukModal({ isOpen, onClose, produk, onSuccess }: Prod
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      title={produk ? 'UBAH BARANG' : 'TAMBAH BARANG'}
-    >
+    <SingleOverlay>
+      <Modal
+        isOpen={isOpen}
+        onClose={handleClose}
+        title={produk ? 'UBAH BARANG' : 'TAMBAH BARANG'}
+      >
       <div className="space-y-4">
         {/* Error Alert */}
         {error && (
@@ -474,5 +476,6 @@ export default function ProdukModal({ isOpen, onClose, produk, onSuccess }: Prod
         </div>
       </div>
     </Modal>
+    </SingleOverlay>
   );
 }

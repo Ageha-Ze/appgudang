@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, DollarSign, TrendingUp } from 'lucide-react';
+import SingleOverlay from '../../../components/SingleOverlay';
 
 interface ModalUpdateHargaProps {
   isOpen: boolean;
@@ -208,7 +209,19 @@ export default function ModalUpdateHarga({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <SingleOverlay>
+      {loading ? (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-yellow-500 border-t-transparent"></div>
+            <div className="text-center">
+              <p className="text-lg font-semibold text-gray-800">Mengupdate Harga...</p>
+              <p className="text-sm text-gray-600">Mohon tunggu sebentar</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[95vh] overflow-y-auto shadow-2xl">
 
         {/* Header */}
@@ -380,5 +393,7 @@ export default function ModalUpdateHarga({
         </form>
       </div>
     </div>
+      )}
+    </SingleOverlay>
   );
 }

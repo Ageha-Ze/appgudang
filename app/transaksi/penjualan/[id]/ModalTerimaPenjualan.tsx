@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { X, CheckCircle } from 'lucide-react';
+import SingleOverlay from '../../../../components/SingleOverlay';
 
 interface ModalTerimaPenjualanProps {
   isOpen: boolean;
@@ -67,9 +68,8 @@ export default function ModalTerimaPenjualan({
   if (!isOpen) return null;
 
   return (
-    <>
-      {/* Full Screen Loading Overlay */}
-      {loading && (
+    <SingleOverlay>
+      {loading ? (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
           <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-green-500 border-t-transparent"></div>
@@ -79,9 +79,8 @@ export default function ModalTerimaPenjualan({
             </div>
           </div>
         </div>
-      )}
-
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      ) : (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md">
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
@@ -168,6 +167,7 @@ export default function ModalTerimaPenjualan({
         </form>
       </div>
     </div>
-    </>
+      )}
+    </SingleOverlay>
   );
 }

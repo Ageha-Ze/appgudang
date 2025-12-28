@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Plus, Minus, AlertCircle, Search, RefreshCw } from 'lucide-react';
+import SingleOverlay from '../../../components/SingleOverlay';
 
 interface ModalManageStockProps {
   isOpen: boolean;
@@ -249,8 +250,20 @@ export default function ModalManageStock({
   const currentStock = initialData?.stock || selectedProduk?.stok || 0;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+    <SingleOverlay>
+      {loading ? (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-500 border-t-transparent"></div>
+            <div className="text-center">
+              <p className="text-lg font-semibold text-gray-800">Mengelola Stock...</p>
+              <p className="text-sm text-gray-600">Mohon tunggu sebentar</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
         
         {/* Header */}
         <div className={`sticky top-0 text-white p-6 rounded-t-2xl ${
@@ -621,5 +634,7 @@ export default function ModalManageStock({
         </form>
       </div>
     </div>
+      )}
+    </SingleOverlay>
   );
 }

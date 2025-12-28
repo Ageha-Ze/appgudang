@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAuthenticated } from '@/lib/supabaseServer';
 
-// GET - List semua produk
+// GET - List semua produk dengan real-time stock
 export async function GET(request: NextRequest) {
   try {
     const supabase = await supabaseAuthenticated();
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get('search') || '';
+    const limit = parseInt(searchParams.get('limit') || '1000');
 
     let query = supabase
       .from('produk')
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
       query = query.or(`nama_produk.ilike.%${search}%,kode_produk.ilike.%${search}%`);
     }
 
-    const { data, error } = await query;
+    const { data: produkList, error } = await query.limit(limit);
 
     if (error) {
       console.error('Error fetching produk:', error);
@@ -27,9 +28,72 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // ✅ Calculate real-time stock from stock_barang table
+    console.log('🔍 Calculating real-time stock for', produkList?.length || 0, 'products...');
+    
+    const produkWithRealStock = await Promise.all(
+      (produkList || []).map(async (produk) => {
+        try {
+          // Get stock movements from stock_barang table
+          const { data: stockBarang, error: stockError } = await supabase
+            .from('stock_barang')
+            .select('jumlah, tipe, tanggal')
+            .eq('produk_id', produk.id)
+            .order('tanggal', { ascending: true });
+
+          if (stockError) {
+            console.error(`❌ Error fetching stock for ${produk.nama_produk}:`, stockError);
+            // Fallback to DB stock if fetch fails
+            return {
+              ...produk,
+              stok: parseFloat(produk.stok?.toString() || '0')
+            };
+          }
+
+          // Calculate real stock: masuk (+) and keluar (-)
+          let stokAkhir = 0;
+          
+          if (stockBarang && stockBarang.length > 0) {
+            const total_masuk = stockBarang
+              .filter(m => m.tipe === 'masuk')
+              .reduce((sum, m) => sum + parseFloat(m.jumlah.toString()), 0);
+
+            const total_keluar = stockBarang
+              .filter(m => m.tipe === 'keluar')
+              .reduce((sum, m) => sum + parseFloat(m.jumlah.toString()), 0);
+
+            stokAkhir = total_masuk - total_keluar;
+
+            console.log(`📦 ${produk.nama_produk}:`);
+            console.log(`   Masuk: ${total_masuk}`);
+            console.log(`   Keluar: ${total_keluar}`);
+            console.log(`   Stock Akhir: ${stokAkhir}`);
+          } else {
+            // No stock movements, use DB stock as fallback
+            stokAkhir = parseFloat(produk.stok?.toString() || '0');
+            console.log(`⚠️ ${produk.nama_produk}: No movements, using DB stock = ${stokAkhir}`);
+          }
+
+          return {
+            ...produk,
+            stok: stokAkhir, // ✅ Real-time calculated stock
+            stok_db: parseFloat(produk.stok?.toString() || '0') // Keep original for debugging
+          };
+        } catch (err) {
+          console.error(`❌ Error calculating stock for ${produk.nama_produk}:`, err);
+          return {
+            ...produk,
+            stok: parseFloat(produk.stok?.toString() || '0')
+          };
+        }
+      })
+    );
+
+    console.log('✅ Stock calculation completed!');
+
     return NextResponse.json({
       success: true,
-      data: data || []
+      data: produkWithRealStock
     });
   } catch (error: any) {
     console.error('Error in produk GET:', error);

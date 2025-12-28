@@ -545,77 +545,79 @@ if (loading) {
       </div>
 
       {/* Desktop Table - Detail Barang */}
-      <div className="hidden lg:block bg-white rounded-xl shadow-lg p-6 mb-6">
-        <h2 className="text-lg font-bold text-gray-800 mb-4">Detail Barang</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead className="bg-indigo-100">
-              <tr>
-                <th className="px-4 py-3 text-left border border-indigo-200">Produk</th>
-                <th className="px-4 py-3 text-right border border-indigo-200">Titip</th>
-                <th className="px-4 py-3 text-right border border-indigo-200">Terjual</th>
-                <th className="px-4 py-3 text-right border border-indigo-200">Sisa</th>
-                <th className="px-4 py-3 text-right border border-indigo-200">Kembali</th>
-                <th className="px-4 py-3 text-right border border-indigo-200">Harga Kita</th>
-                <th className="px-4 py-3 text-right border border-indigo-200">Harga Toko</th>
-                <th className="px-4 py-3 text-right border border-indigo-200">Subtotal</th>
+<div className="hidden lg:block bg-white rounded-xl shadow-lg p-6 mb-6">
+  <h2 className="text-lg font-bold text-gray-800 mb-4">Detail Barang</h2>
+  <div className="overflow-x-auto">
+    <table className="w-full border-collapse">
+      <thead className="bg-indigo-100">
+      <tr>
+          <th className="px-4 py-3 text-left border border-indigo-200">Produk</th>
+          <th className="px-4 py-3 text-right border border-indigo-200">Titip</th>
+          <th className="px-4 py-3 text-right border border-indigo-200">Terjual</th>
+          <th className="px-4 py-3 text-right border border-indigo-200">Sisa</th>
+          <th className="px-4 py-3 text-right border border-indigo-200">Kembali</th>
+          <th className="px-4 py-3 text-right border border-indigo-200">Harga Kita</th>
+          <th className="px-4 py-3 text-right border border-indigo-200">Harga Toko</th>
+          <th className="px-4 py-3 text-right border border-indigo-200">Subtotal</th>
+          <th className="px-4 py-3 text-center border border-indigo-200">Aksi</th> {/* ✅ HEADER AKSI */}
+        </tr>
+      </thead>
+      <tbody>
+        {data.detail_konsinyasi?.map((detail, index) => (
+          <tr key={detail.id} className={`border-b border-indigo-200 ${index % 2 === 0 ? 'bg-white' : 'bg-indigo-50'} hover:bg-indigo-100`}>
+            <td className="px-4 py-3 border border-indigo-200">
+              <div>
+                <p className="font-medium">{detail.produk?.nama_produk}</p>
+                <p className="text-sm text-gray-600">{detail.produk?.kode_produk}</p>
+              </div>
+            </td>
+            <td className="px-4 py-3 text-right border border-indigo-200">{detail.jumlah_titip}</td>
+            <td className="px-4 py-3 text-right border border-indigo-200 text-green-600 font-medium">{detail.jumlah_terjual}</td>
+            <td className="px-4 py-3 text-right border border-indigo-200 text-blue-600 font-medium">{detail.jumlah_sisa}</td>
+            <td className="px-4 py-3 text-right border border-indigo-200 text-orange-600 font-medium">{detail.jumlah_kembali}</td>
+            <td className="px-4 py-3 text-right border border-indigo-200">
+              Rp {detail.harga_konsinyasi.toLocaleString('id-ID')}
+            </td>
+            <td className="px-4 py-3 text-right border border-indigo-200">
+              Rp {detail.harga_jual_toko.toLocaleString('id-ID')}
+            </td>
+            <td className="px-4 py-3 text-right border border-indigo-200 font-semibold">
+              Rp {(detail.jumlah_terjual * detail.harga_konsinyasi).toLocaleString('id-ID')}
+            </td>
+            {/* ✅ KOLOM AKSI - SELALU ADA */}
+            <td className="px-4 py-3 border border-indigo-200">
+              <div className="flex justify-center gap-2">
                 {data.status === 'Aktif' && (
-                  <th className="px-4 py-3 text-center border border-indigo-200">Action</th>
+                  <>
+                    <button
+                      onClick={() => handleOpenPenjualan(detail)}
+                      disabled={detail.jumlah_sisa <= 0}
+                      className="text-green-600 hover:text-green-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Input Penjualan"
+                    >
+                      <ShoppingCart size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleOpenRetur(detail)}
+                      disabled={detail.jumlah_sisa <= 0}
+                      className="text-orange-600 hover:text-orange-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Retur Barang"
+                    >
+                      <RotateCcw size={18} />
+                    </button>
+                  </>
                 )}
-              </tr>
-            </thead>
-            <tbody>
-              {data.detail_konsinyasi?.map((detail, index) => (
-                <tr key={detail.id} className={`border-b border-indigo-200 ${index % 2 === 0 ? 'bg-white' : 'bg-indigo-50'} hover:bg-indigo-100`}>
-                  <td className="px-4 py-3 border border-indigo-200">
-                    <div>
-                      <p className="font-medium">{detail.produk?.nama_produk}</p>
-                      <p className="text-sm text-gray-600">{detail.produk?.kode_produk}</p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right border border-indigo-200">{detail.jumlah_titip}</td>
-                  <td className="px-4 py-3 text-right border border-indigo-200 text-green-600 font-medium">{detail.jumlah_terjual}</td>
-                  <td className="px-4 py-3 text-right border border-indigo-200 text-blue-600 font-medium">{detail.jumlah_sisa}</td>
-                  <td className="px-4 py-3 text-right border border-indigo-200 text-orange-600 font-medium">{detail.jumlah_kembali}</td>
-                  <td className="px-4 py-3 text-right border border-indigo-200">
-                    Rp {detail.harga_konsinyasi.toLocaleString('id-ID')}
-                  </td>
-                  <td className="px-4 py-3 text-right border border-indigo-200">
-                    Rp {detail.harga_jual_toko.toLocaleString('id-ID')}
-                  </td>
-                  <td className="px-4 py-3 text-right border border-indigo-200 font-semibold">
-                    Rp {(detail.jumlah_terjual * detail.harga_konsinyasi).toLocaleString('id-ID')}
-                  </td>
-                  {(data.status === 'Aktif' || data.status === 'Selesai') && (
-                    <td className="px-4 py-3 border border-indigo-200">
-                      <div className="flex justify-center gap-2">
-                        {data.status === 'Aktif' && (
-                          <button
-                            onClick={() => handleOpenPenjualan(detail)}
-                            disabled={detail.jumlah_sisa <= 0}
-                            className="text-green-600 hover:text-green-800 transition disabled:opacity-50"
-                            title="Input Penjualan"
-                          >
-                            <ShoppingCart size={18} />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleOpenRetur(detail)}
-                          disabled={detail.jumlah_sisa <= 0}
-                          className="text-orange-600 hover:text-orange-800 transition disabled:opacity-50"
-                          title="Retur Barang"
-                        >
-                          <RotateCcw size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                {data.status === 'Selesai' && (
+                  <span className="text-gray-400 text-sm">-</span>
+                )}
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
 
      {/* Riwayat Penjualan - Mobile Cards */}
       {penjualanList.length > 0 && (

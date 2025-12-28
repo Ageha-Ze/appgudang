@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import SingleOverlay from '../../../../components/SingleOverlay';
 
 interface Kas {
   id: number;
@@ -138,7 +139,7 @@ export default function ModalCicilan({
   const isOver = formData.jumlah_cicilan > sisaHutang;
 
   return (
-    <>
+    <SingleOverlay>
       {loading && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
           <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4">
@@ -274,6 +275,6 @@ export default function ModalCicilan({
         </form>
       </div>
     </div>
-    </>
+    </SingleOverlay>
   );
 }

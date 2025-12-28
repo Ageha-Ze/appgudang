@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, AlertCircle, Droplets, ArrowRight } from 'lucide-react';
+import SingleOverlay from '../../../components/SingleOverlay';
 
 interface ModalTambahUnloadingProps {
   isOpen: boolean;
@@ -457,7 +458,8 @@ export default function ModalTambahUnloading({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+    <SingleOverlay>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
       {loading && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
           <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4">
@@ -905,5 +907,6 @@ export default function ModalTambahUnloading({
         </form>
       </div>
     </div>
+    </SingleOverlay>
   );
 }

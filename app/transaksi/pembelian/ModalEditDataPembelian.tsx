@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import SingleOverlay from '../../../components/SingleOverlay';
 import { SuplierData } from '@/types/suplier';
 
 interface Props {
@@ -125,9 +126,8 @@ export default function ModalEditDataPembelian({
   if (!isOpen) return null;
 
   return (
-    <>
-      {/* ✅ Full Screen Loading Overlay */}
-      {loading && (
+    <SingleOverlay>
+      {loading ? (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
           <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
@@ -137,9 +137,8 @@ export default function ModalEditDataPembelian({
             </div>
           </div>
         </div>
-      )}
-
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      ) : (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">EDIT PEMBELIAN BARANG</h2>
@@ -248,9 +247,10 @@ export default function ModalEditDataPembelian({
                 Batal
               </button>
             </div>
-          </form>
-        </div>
+        </form>
       </div>
-    </>
+    </div>
+      )}
+    </SingleOverlay>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Package, Plus, Trash2, Save, X, AlertCircle } from 'lucide-react';
+import SingleOverlay from '../../../../components/SingleOverlay';
 
 interface Toko {
   id: number;
@@ -297,9 +298,8 @@ export default function TambahKonsinyasiPage() {
     }
 
   return (
-    <>
-      {/* Full Screen Loading Overlay */}
-      {loading && (
+    <SingleOverlay>
+      {loading ? (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
           <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
@@ -309,9 +309,8 @@ export default function TambahKonsinyasiPage() {
             </div>
           </div>
         </div>
-      )}
-
-      <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+      ) : (
+        <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
       <div className="flex items-center gap-4 mb-8 bg-white p-4 rounded-xl shadow-lg border-l-4 border-indigo-500">
         <div className="bg-indigo-500 p-3 rounded-lg">
           <Package className="text-white" size={24} />
@@ -738,7 +737,8 @@ export default function TambahKonsinyasiPage() {
           </div>
         </div>
       )}
-    </div>
-    </>
+        </div>
+      )}
+    </SingleOverlay>
   );
 }

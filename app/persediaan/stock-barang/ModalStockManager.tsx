@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Plus, Minus, Edit, AlertCircle, DollarSign, TrendingUp, Package } from 'lucide-react';
+import SingleOverlay from '../../../components/SingleOverlay';
 
 interface ModalStockManagerProps {
   isOpen: boolean;
@@ -343,7 +344,19 @@ export default function ModalStockManager({
   const currentStock = stockData?.stock || 0;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <SingleOverlay>
+      {loading ? (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+            <div className="text-center">
+              <p className="text-lg font-semibold text-gray-800">Mengelola Stock...</p>
+              <p className="text-sm text-gray-600">Mohon tunggu sebentar</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[95vh] overflow-y-auto shadow-2xl">
 
         {/* Header */}
@@ -785,5 +798,7 @@ export default function ModalStockManager({
         </form>
       </div>
     </div>
+      )}
+    </SingleOverlay>
   );
 }

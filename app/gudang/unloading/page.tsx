@@ -5,6 +5,7 @@ import { Package, Plus, Eye, Trash2, Filter } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import ModalTambahUnloading from './ModalTambahUnloading';
 import { customToast } from '@/lib/toast';
+import SingleOverlay from '../../../components/SingleOverlay';
 
 interface Cabang {
   id: number;
@@ -224,15 +225,17 @@ export default function UnloadingListPage() {
   return (
     <div className="p-3 sm:p-6 bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
       {submitting && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent"></div>
-            <div className="text-center">
-              <p className="text-lg font-semibold text-gray-800">Memproses...</p>
-              <p className="text-sm text-gray-600">Mohon tunggu sebentar</p>
+        <SingleOverlay>
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
+            <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent"></div>
+              <div className="text-center">
+                <p className="text-lg font-semibold text-gray-800">Memproses...</p>
+                <p className="text-sm text-gray-600">Mohon tunggu sebentar</p>
+              </div>
             </div>
           </div>
-        </div>
+        </SingleOverlay>
       )}
       {/* Header */}
       <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-8 bg-white p-3 sm:p-4 rounded-xl shadow-lg border-l-4 border-indigo-500">

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Modal from '@/components/Modal';
 import { SuplierData } from '@/types/suplier';
+import SingleOverlay from '../../../components/SingleOverlay';
 
 interface SuplierModalProps {
   isOpen: boolean;
@@ -125,11 +126,12 @@ export default function SuplierModal({ isOpen, onClose, suplier, onSuccess }: Su
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={suplier ? 'EDIT SUPPLIER' : 'TAMBAH SUPPLIER'}
-    >
+    <SingleOverlay>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title={suplier ? 'EDIT SUPPLIER' : 'TAMBAH SUPPLIER'}
+      >
       <div className="space-y-4">
         {suplier && (
           <div>
@@ -266,5 +268,6 @@ export default function SuplierModal({ isOpen, onClose, suplier, onSuccess }: Su
         </div>
       </div>
     </Modal>
+    </SingleOverlay>
   );
 }

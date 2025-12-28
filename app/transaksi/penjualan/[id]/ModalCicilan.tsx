@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { calculatePenjualanTotals } from '@/lib/transaksi/calculateTotals';
+import SingleOverlay from '../../../../components/SingleOverlay';
 
 interface ModalCicilanProps {
   isOpen: boolean;
@@ -186,9 +187,8 @@ export default function ModalCicilan({
   const { totalPiutang, sudahDibayar, sisaTagihan } = calculateInfo();
 
   return (
-    <>
-      {/* Full Screen Loading Overlay */}
-      {loading && (
+    <SingleOverlay>
+      {loading ? (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
           <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
@@ -198,9 +198,8 @@ export default function ModalCicilan({
             </div>
           </div>
         </div>
-      )}
-
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      ) : (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-yellow-50 rounded-lg p-6 w-full max-w-md">
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
@@ -354,6 +353,7 @@ export default function ModalCicilan({
         </form>
       </div>
     </div>
-    </>
+      )}
+    </SingleOverlay>
   );
 }

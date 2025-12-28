@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, AlertCircle } from 'lucide-react';
+import SingleOverlay from '../../../components/SingleOverlay';
 
 interface Produk { id: number; nama_produk: string; }
 interface Pegawai { id: number; nama: string; }
@@ -174,19 +175,20 @@ export default function ModalTambahProduksi({ isOpen, onClose, onSuccess }: Moda
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-      {loading && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-violet-600 border-t-transparent"></div>
-            <div className="text-center">
-              <p className="text-lg font-semibold text-gray-800">Menyimpan...</p>
-              <p className="text-sm text-gray-600">Mohon tunggu</p>
+    <SingleOverlay>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+        {loading && (
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
+            <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-violet-600 border-t-transparent"></div>
+              <div className="text-center">
+                <p className="text-lg font-semibold text-gray-800">Menyimpan...</p>
+                <p className="text-sm text-gray-600">Mohon tunggu</p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-md max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+        )}
+        <div className="bg-white rounded-xl shadow-lg w-full max-w-md max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center z-10 rounded-t-xl">
           <div>
@@ -355,7 +357,8 @@ export default function ModalTambahProduksi({ isOpen, onClose, onSuccess }: Moda
             </button>
           </div>
         </form>
+        </div>
       </div>
-    </div>
+    </SingleOverlay>
   );
 }

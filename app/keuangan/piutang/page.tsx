@@ -62,43 +62,47 @@ export default function PiutangPenjualanPage() {
     kasId: ''
   });
 
-  const fetchKasList = async () => {
+  const fetchKasList = async (cabangId?: number) => {
   try {
-    console.log('🔍 Fetching kas list...');
-    const response = await fetch('/api/master/kas');
+    console.log('🔍 Fetching kas list...', cabangId ? `for cabang ${cabangId}` : 'all cabangs');
+    const url = cabangId ? `/api/master/kas?cabang_id=${cabangId}` : '/api/master/kas';
+    const response = await fetch(url);
     console.log('📡 Response status:', response.status);
-    
+
     if (response.ok) {
       const result = await response.json();
       console.log('📦 Raw result:', result);
-      
+
       const kasData = result.data || result;
       console.log('📋 Kas Data:', kasData);
       console.log('📋 Is Array?', Array.isArray(kasData));
-      
+
       // Ensure kasData is an array
       const kasArray = Array.isArray(kasData) ? kasData : [];
       console.log('📋 Kas Array:', kasArray);
-      
+
       setKasList(kasArray);
-      
+
       // Set default kas_id jika ada
       if (kasArray.length > 0) {
         console.log('✅ Setting default kas:', kasArray[0]);
-        setFormPembayaran(prev => ({ 
-          ...prev, 
-          kasId: kasArray[0].id.toString() 
+        setFormPembayaran(prev => ({
+          ...prev,
+          kasId: kasArray[0].id.toString()
         }));
       } else {
         console.warn('⚠️ Kas list kosong!');
+        setFormPembayaran(prev => ({ ...prev, kasId: '' }));
       }
     } else {
       console.error('❌ Response not OK:', response.status);
       setKasList([]); // Ensure it's an array even on error
+      setFormPembayaran(prev => ({ ...prev, kasId: '' }));
     }
   } catch (error) {
     console.error('❌ Error fetching kas list:', error);
     setKasList([]); // Ensure it's an array even on error
+    setFormPembayaran(prev => ({ ...prev, kasId: '' }));
   }
 };
 
@@ -377,6 +381,8 @@ export default function PiutangPenjualanPage() {
   const handleShowPembayaran = () => {
     setShowDetailModal(false);
     setShowPembayaranModal(true);
+    // Fetch kas accounts filtered by the selected piutang's cabang
+    fetchKasList(selectedPiutang?.cabangId);
   };
 
   if (loading) {

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Modal from '@/components/Modal';
 import { UserData } from '@/types/user';
 import { User, Lock, Shield } from 'lucide-react';
+import SingleOverlay from '../../../components/SingleOverlay';
 
 interface UserModalProps {
   isOpen: boolean;
@@ -155,11 +156,12 @@ export default function UserModal({ isOpen, onClose, user, onSuccess }: UserModa
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={user ? 'EDIT USER' : 'TAMBAH USER'}
-    >
+    <SingleOverlay>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title={user ? 'EDIT USER' : 'TAMBAH USER'}
+      >
       <div className="space-y-6 p-2">
         {user && (
           <div className="relative">
@@ -271,5 +273,6 @@ export default function UserModal({ isOpen, onClose, user, onSuccess }: UserModa
         </div>
       </div>
     </Modal>
+    </SingleOverlay>
   );
 }

@@ -16,6 +16,11 @@ interface ModalEditCicilanProps {
   penjualanId: number;
 }
 
+interface PenjualanData {
+  id: number;
+  cabang_id: number;
+}
+
 interface Kas {
   id: number;
   nama_kas: string;
@@ -36,6 +41,7 @@ export default function ModalEditCicilan({
   });
   const [kasList, setKasList] = useState<Kas[]>([]);
   const [loading, setLoading] = useState(false);
+  const [penjualanData, setPenjualanData] = useState<PenjualanData | null>(null);
 
   useEffect(() => {
     if (isOpen && cicilan) {
@@ -44,13 +50,27 @@ export default function ModalEditCicilan({
         tanggal_cicilan: cicilan.tanggal_cicilan,
         jumlah_cicilan: parseFloat(cicilan.jumlah_cicilan.toString()),
       });
-      fetchKas();
+      fetchPenjualanData();
     }
   }, [isOpen, cicilan]);
 
-  const fetchKas = async () => {
+  const fetchPenjualanData = async () => {
     try {
-      const res = await fetch('/api/master/kas');
+      const res = await fetch(`/api/transaksi/penjualan/${penjualanId}`);
+      const json = await res.json();
+      if (json.success !== false && json.data) {
+        setPenjualanData(json.data);
+        fetchKas(json.data.cabang_id);
+      }
+    } catch (error) {
+      console.error('Error fetching penjualan data:', error);
+    }
+  };
+
+  const fetchKas = async (cabangId?: number) => {
+    try {
+      const url = cabangId ? `/api/master/kas?cabang_id=${cabangId}` : '/api/master/kas';
+      const res = await fetch(url);
       const json = await res.json();
       setKasList(json.data || []);
     } catch (error) {
