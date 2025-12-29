@@ -63,16 +63,11 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Supabase error:', error);
-      console.error('Error details:', error.details);
-      console.error('Error hint:', error.hint);
-      console.error('Error code:', error.code);
       return NextResponse.json(
-        { error: 'Database error', details: error.message, hint: error.hint, code: error.code },
+        { error: 'Database error', details: error.message },
         { status: 500 }
       );
     }
-
-    console.log('Piutang data fetched successfully:', piutangData?.length || 0, 'records');
 
     // 🔥 FIX: Ambil semua cicilan untuk setiap piutang
     const piutangIds = (piutangData || []).map(p => p.id);
@@ -113,11 +108,9 @@ export async function GET(request: NextRequest) {
         nota_penjualan = `PJ-${tanggal}-${nomorUrut}`;
       }
 
-      // 🔍 DEBUG LOG
+      // Check for data consistency (no logging needed for production)
       const dibayarFromDB = parseFloat(item.dibayar?.toString() || '0');
-      if (Math.abs(dibayarFromDB - terbayar) > 0.01) {
-        console.log(`⚠️ Inkonsistensi ID ${item.id}: Field DB=${dibayarFromDB}, Cicilan=${terbayar}`);
-      }
+      // Data consistency check removed for production
 
       return {
         id: item.id,

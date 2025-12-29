@@ -20,7 +20,6 @@ export async function POST(request: NextRequest) {
       persentase,
     } = body;
 
-    console.log('💰 Updating price:', { produk_id, cabang_id, hpp, harga_jual, persentase });
 
     // Validation
     if (!produk_id || hpp === undefined || harga_jual === undefined) {
@@ -61,7 +60,6 @@ export async function POST(request: NextRequest) {
 
       if (updateError) throw updateError;
 
-      console.log('✅ Price updated for all cabang in produk table');
 
       return NextResponse.json({
         success: true,
@@ -98,7 +96,6 @@ export async function POST(request: NextRequest) {
       .eq('id', cabang_id)
       .single();
 
-    console.log('✅ Price updated for specific cabang');
 
     return NextResponse.json({
       success: true,

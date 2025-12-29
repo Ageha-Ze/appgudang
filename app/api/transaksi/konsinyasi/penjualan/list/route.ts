@@ -15,7 +15,6 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log('📊 Fetching penjualan for konsinyasi:', konsinyasiId);
 
     // ✅ Get all detail_konsinyasi IDs untuk konsinyasi ini
     const { data: details, error: detailError } = await supabase
@@ -28,7 +27,6 @@ export async function GET(request: NextRequest) {
     const detailIds = details?.map(d => d.id) || [];
 
     if (detailIds.length === 0) {
-      console.log('ℹ️ No details found for this konsinyasi');
       return NextResponse.json({ 
         data: [],
         summary: {
@@ -40,7 +38,6 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    console.log(`📦 Found ${detailIds.length} detail(s)`);
 
     // ✅ Get all penjualan untuk detail-detail tersebut
     const { data: penjualanList, error } = await supabase
@@ -67,7 +64,6 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
-    console.log(`💰 Found ${penjualanList?.length || 0} penjualan transaction(s)`);
 
     // ✅ Calculate summary
     const summary = {
@@ -90,7 +86,6 @@ export async function GET(request: NextRequest) {
       ) || 0
     };
 
-    console.log('📈 Summary:', summary);
 
     // ✅ Optional: Group by produk untuk analytics
     const byProduk = penjualanList?.reduce((acc: any, penjualan) => {

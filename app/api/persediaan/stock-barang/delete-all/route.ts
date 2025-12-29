@@ -15,7 +15,6 @@ export async function POST(request: NextRequest) {
 
     const { produk_id, cabang_id } = body;
 
-    console.log('🗑️ Deleting all stock for:', { produk_id, cabang_id });
 
     if (!produk_id) {
       return NextResponse.json(
@@ -61,7 +60,6 @@ export async function POST(request: NextRequest) {
 
     if (updateError) throw updateError;
 
-    console.log(`✅ Deleted ${count || 0} stock records and reset stock to 0`);
 
     return NextResponse.json({
       success: true,

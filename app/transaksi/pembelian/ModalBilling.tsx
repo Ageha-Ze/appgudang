@@ -257,7 +257,6 @@ export default function ModalBilling({ isOpen, onClose, onSuccess, pembelianData
 
           {/* Jatuh Tempo - Only show for hutang payments */}
           {(() => {
-            console.log('Checking jatuh tempo condition:', pembelianData.jenis_pembayaran?.toLowerCase() === 'hutang', pembelianData.jenis_pembayaran);
             return pembelianData.jenis_pembayaran?.toLowerCase() === 'hutang';
           })() && (
             <div className="grid grid-cols-3 items-center gap-4">

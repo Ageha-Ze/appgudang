@@ -90,7 +90,6 @@ export default function ModalTambahPenjualan({
 
   // ✅ PREVENT DOUBLE-SUBMIT (FIX #1)
   if (loading) {
-    console.log('⚠️ Submit already in progress, ignoring...');
     return;
   }
 

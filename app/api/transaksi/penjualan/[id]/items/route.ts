@@ -14,7 +14,6 @@ export async function POST(
     const { id: penjualan_id } = await context.params;
     const body = await request.json();
 
-    console.log('➕ Adding item to penjualan:', penjualan_id, body);
 
     // ✅ Validasi: Cek apakah penjualan sudah dikonfirmasi
     const { data: penjualan, error: penjualanError } = await supabase
@@ -81,7 +80,6 @@ export async function POST(
       }, { status: 400 });
     }
 
-    console.log(`  ℹ️ Stock check: ${produk.nama_produk} = ${stokTersedia} (cukup untuk ${jumlahDiminta})`);
 
     // ✅ Insert detail penjualan (TANPA mengurangi stock)
     const detailData = {
@@ -103,7 +101,6 @@ export async function POST(
 
     if (detailError) throw detailError;
 
-    console.log('  ✅ Item added (stock NOT reduced yet)');
 
     // ✅ Update total penjualan
     const { data: allDetails } = await supabase
@@ -123,7 +120,6 @@ export async function POST(
 
     if (updateTotalError) throw updateTotalError;
 
-    console.log(`  💰 Total updated: ${total}`);
 
     // ❌ TIDAK ADA PENGURANGAN STOCK DI SINI!
     // Stock akan dikurangi saat konfirmasi "Diterima" di route konfirmasi/route.ts
@@ -158,7 +154,6 @@ export async function PUT(
     const { id: penjualan_id } = await context.params;
     const body = await request.json();
 
-    console.log('✏️ Updating item:', body);
 
     // Validasi: Cek apakah penjualan sudah dikonfirmasi
     const { data: penjualan, error: penjualanError } = await supabase
@@ -208,11 +203,6 @@ export async function PUT(
     const jumlahBaru = parseFloat(body.jumlah?.toString() || '0');
     const additionalNeeded = jumlahBaru - jumlahLama;
 
-    console.log(`  📦 Stock validation for: ${produkData.nama_produk}`);
-    console.log(`     Global stock: ${globalStock} ${produkData.satuan}`);
-    console.log(`     Current usage: ${jumlahLama}`);
-    console.log(`     New request: ${jumlahBaru}`);
-    console.log(`     Additional needed: ${additionalNeeded}`);
 
     // Get total pending reservations for this product (ALL cabang)
     const { data: allPendingReservations } = await supabase
@@ -233,8 +223,6 @@ export async function PUT(
 
     const availableStock = globalStock - totalReservedByOthers;
 
-    console.log(`     Reserved by other pending: ${totalReservedByOthers}`);
-    console.log(`     Available: ${availableStock}`);
 
     // Validation: If increasing quantity, check availability
     if (additionalNeeded > 0) {
@@ -247,9 +235,7 @@ export async function PUT(
                  `Tambahan diminta: ${additionalNeeded.toFixed(2)}`
         }, { status: 400 });
       }
-      console.log(`     ✓ Validation passed: additional ${additionalNeeded} <= available ${availableStock}`);
     } else {
-      console.log(`     ✓ Reducing quantity - always allowed`);
     }
 
     // Update detail penjualan
@@ -271,7 +257,6 @@ export async function PUT(
 
     if (updateError) throw updateError;
 
-    console.log('  ✅ Item updated');
 
     // Update total penjualan
     const { data: allDetails } = await supabase
@@ -291,7 +276,6 @@ export async function PUT(
 
     if (updateTotalError) throw updateTotalError;
 
-    console.log(`  💰 Total updated: ${total}`);
 
     return NextResponse.json({ 
       success: true,
@@ -331,7 +315,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log('🗑️ Deleting item:', itemId, 'from penjualan:', penjualanId);
 
     // ✅ Validasi: Cek apakah penjualan sudah dikonfirmasi
     const { data: penjualan, error: penjualanError } = await supabase
@@ -368,11 +351,9 @@ export async function DELETE(request: NextRequest) {
       .eq('id', item.produk_id)
       .single();
 
-    console.log(`  📦 Item: ${produkInfo?.nama_produk || 'Unknown'}, Qty: ${item.jumlah}`);
 
     // ❌ TIDAK ADA PENGEMBALIAN STOCK DI SINI!
     // Karena stock belum dikurangi saat item ditambahkan
-    console.log('  ℹ️ Stock NOT returned (was never reduced)');
 
     // ✅ Delete detail penjualan
     const { error: deleteError } = await supabase
@@ -382,7 +363,6 @@ export async function DELETE(request: NextRequest) {
 
     if (deleteError) throw deleteError;
 
-    console.log('  ✅ Item deleted');
 
     // ✅ Update total penjualan
     const { data: allDetails } = await supabase
@@ -402,7 +382,6 @@ export async function DELETE(request: NextRequest) {
 
     if (updateTotalError) throw updateTotalError;
 
-    console.log(`  💰 Total updated: ${total}`);
 
     return NextResponse.json({ 
       success: true,

@@ -58,12 +58,10 @@ export default function ModalPelunasan({
         ? `/api/master/kas?cabang_id=${cabangId}`
         : '/api/master/kas';
       
-      console.log('Fetching rekenings from:', url);
       
       const res = await fetch(url);
       const json = await res.json();
       
-      console.log('Rekenings response:', json);
       
       if (json.data && json.data.length > 0) {
         // Parse saldo to number
@@ -72,7 +70,6 @@ export default function ModalPelunasan({
           saldo: parseFloat(rek.saldo) || 0
         }));
         setRekenings(parsedData);
-        console.log('Rekenings set successfully:', parsedData.length, 'items');
       } else {
         console.warn('No rekenings data found');
         setRekenings([]);

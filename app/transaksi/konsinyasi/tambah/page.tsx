@@ -77,9 +77,18 @@ export default function TambahKonsinyasiPage() {
   useEffect(() => {
     fetchToko();
     fetchCabang();
-    fetchPegawai();
     fetchProduk();
   }, []);
+
+  useEffect(() => {
+    if (formData.cabang_id) {
+      fetchPegawaiByCabang(formData.cabang_id);
+    } else {
+      setPegawaiList([]);
+    }
+    // Reset pegawai selection when cabang changes
+    setFormData(prev => ({ ...prev, pegawai_id: '' }));
+  }, [formData.cabang_id]);
 
   const fetchToko = async () => {
     try {
@@ -105,14 +114,14 @@ export default function TambahKonsinyasiPage() {
     }
   };
 
-  const fetchPegawai = async () => {
+  const fetchPegawaiByCabang = async (cabangId: string) => {
     try {
-      const res = await fetch('/api/master/pegawai');
+      const res = await fetch(`/api/master/pegawai?cabang_id=${cabangId}`);
       const json = await res.json();
-      console.log('Pegawai data:', json);
+      console.log('Pegawai data by cabang:', json);
       setPegawaiList(json.data || []);
     } catch (error) {
-      console.error('Error fetching pegawai:', error);
+      console.error('Error fetching pegawai by cabang:', error);
       alert('Gagal memuat data pegawai');
     }
   };
@@ -137,7 +146,7 @@ export default function TambahKonsinyasiPage() {
       }
     } catch (error) {
       console.error('Error fetching produk:', error);
-      alert('Gagal memuat data produk. Cek console untuk detail.');
+      alert('Gagal memuat data produk');
     } finally {
       setLoadingProduk(false);
     }
@@ -388,9 +397,12 @@ export default function TambahKonsinyasiPage() {
               <select
                 value={formData.pegawai_id}
                 onChange={(e) => setFormData({ ...formData, pegawai_id: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                disabled={!formData.cabang_id}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
-                <option value="">-- Pilih Pegawai --</option>
+                <option value="">
+                  {formData.cabang_id ? '-- Pilih Pegawai --' : '-- Pilih Cabang terlebih dahulu --'}
+                </option>
                 {pegawaiList.map((pegawai) => (
                   <option key={pegawai.id} value={pegawai.id}>
                     {pegawai.nama}
@@ -400,16 +412,7 @@ export default function TambahKonsinyasiPage() {
             </div>
           </div>
 
-          <div className="mt-6">
-            <label className="block text-gray-700 font-medium mb-2">Keterangan</label>
-            <textarea
-              value={formData.keterangan}
-              onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              rows={3}
-              placeholder="Catatan tambahan"
-            />
-          </div>
+         
         </div>
 
         <div className="bg-white rounded-xl shadow-lg p-6">

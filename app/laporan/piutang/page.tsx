@@ -55,7 +55,6 @@ export default function LaporanPiutang() {
       
       const result = await response.json();
       
-      console.log('API Response:', result); // Debug log
       
       if (result.success) {
         setData(result.data || []);

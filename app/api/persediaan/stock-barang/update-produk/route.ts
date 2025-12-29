@@ -8,7 +8,6 @@ export async function POST(request: NextRequest) {
     const supabase = await supabaseAuthenticated();
     const body = await request.json();
 
-    console.log('📥 Update product request:', body);
 
     const { produk_id, cabang_id, stock, persentase, harga_jual } = body;
 
@@ -43,7 +42,6 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    console.log('📊 Current stock:', currentStock, 'Desired stock:', stock);
 
     // Get product details
     const { data: productData, error: productError } = await supabase
@@ -59,7 +57,6 @@ export async function POST(request: NextRequest) {
 
     // Calculate the difference needed to reach the desired stock level
     const stockDifference = stock - currentStock;
-    console.log('📊 Stock adjustment needed:', stockDifference);
 
     // Always update product pricing in the produk table
     const { error: pricingError } = await supabase
@@ -77,7 +74,6 @@ export async function POST(request: NextRequest) {
 
     // If stock is already at desired level, just return success
     if (stockDifference === 0) {
-      console.log('✅ Stock already at desired level, pricing updated');
       return NextResponse.json({
         success: true,
         message: 'Product pricing updated successfully (stock already at desired level)'
@@ -97,7 +93,6 @@ export async function POST(request: NextRequest) {
       harga_jual: harga_jual
     };
 
-    console.log('📤 Creating stock adjustment transaction:', adjustmentData);
 
     const { data: insertData, error: insertError } = await supabase
       .from('stock_barang')
@@ -113,7 +108,6 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log('✅ Stock adjustment created successfully:', insertData);
 
     return NextResponse.json({
       success: true,

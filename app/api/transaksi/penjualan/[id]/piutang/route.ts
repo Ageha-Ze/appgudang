@@ -106,7 +106,6 @@ export async function GET(request: NextRequest) {
       // 🔍 DEBUG LOG
       const dibayarFromDB = parseFloat(item.dibayar?.toString() || '0');
       if (Math.abs(dibayarFromDB - terbayar) > 0.01) {
-        console.log(`⚠️ Inkonsistensi ID ${item.id}: Field DB=${dibayarFromDB}, Cicilan=${terbayar}`);
       }
 
       return {

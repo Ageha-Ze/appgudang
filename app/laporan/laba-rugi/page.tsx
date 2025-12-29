@@ -8,7 +8,7 @@ interface Cabang {
   id: number;
   nama_cabang: string;
 }
-
+ 
 export default function LabaRugiPage() {
   const [tanggalDari, setTanggalDari] = useState(
     new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]

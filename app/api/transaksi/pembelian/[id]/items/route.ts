@@ -14,8 +14,6 @@ export async function POST(
     const { id: pembelian_id } = await context.params;
     const body = await request.json();
 
-    console.log('Adding item to pembelian:', pembelian_id);
-    console.log('Item data:', body);
 
     // Validasi ID
     if (!pembelian_id || pembelian_id === 'undefined') {
@@ -111,7 +109,6 @@ export async function POST(
       throw updateError;
     }
 
-    console.log('Item added successfully, new total:', total);
 
     return NextResponse.json({ 
       data: detailWithProduk,
@@ -134,7 +131,6 @@ export async function DELETE(request: NextRequest) {
     const itemId = searchParams.get('itemId');
     const pembelianId = searchParams.get('pembelianId');
 
-    console.log('Deleting item:', itemId, 'from pembelian:', pembelianId);
 
     // Validasi parameters
     if (!itemId || !pembelianId) {
@@ -180,7 +176,6 @@ export async function DELETE(request: NextRequest) {
       throw updateError;
     }
 
-    console.log('Item deleted successfully, new total:', total);
 
     return NextResponse.json({ 
       message: 'Item berhasil dihapus' 

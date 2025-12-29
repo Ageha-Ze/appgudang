@@ -11,8 +11,6 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await supabaseAuthenticated();
 
-    console.log('🔍 Starting debug check...');
-
     // Check query parameters for specific audit
     const { searchParams } = new URL(request.url);
     const produkId = searchParams.get('produk_id');

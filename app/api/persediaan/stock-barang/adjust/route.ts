@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
       user_info, // Who is making this adjustment
     } = body;
 
-    console.log('🔧 Adjusting stock:', { produk_id, cabang_id, jumlah_baru });
 
     // Get current stock
     const { data: produk, error: produkError } = await supabase
@@ -63,22 +62,12 @@ export async function POST(request: NextRequest) {
     const newStock = parseFloat(jumlah_baru);
     const selisih = newStock - currentStock;
 
-    console.log(`🔧 ADJUSTMENT CALCULATION:`);
-    console.log(`   Produk: ${produk.nama_produk} (${produk_id})`);
-    console.log(`   Cabang: ${cabang_id}`);
-    console.log(`   Current stock in database: ${produk.stok} (type: ${typeof produk.stok})`);
-    console.log(`   Parsed currentStock: ${currentStock}`);
-    console.log(`   User requested target: ${jumlah_baru} (type: ${typeof jumlah_baru})`);
-    console.log(`   Parsed newStock: ${newStock}`);
-    console.log(`   Calculated difference (newStock - currentStock): ${selisih}`);
-    console.log(`   Transaction type: ${selisih > 0 ? 'MASUK' : 'KELUAR'} ${Math.abs(selisih)}`);
 
     // Additional safety check
     if (isNaN(currentStock) || isNaN(newStock)) {
       throw new Error(`Invalid stock values: currentStock=${currentStock}, newStock=${newStock}`);
     }
 
-    console.log(`  📊 Stock adjustment: ${currentStock} → ${newStock} (selisih: ${selisih})`);
 
     // If no difference, no need to adjust
     if (Math.abs(selisih) < 0.001) {
@@ -105,7 +94,6 @@ export async function POST(request: NextRequest) {
       throw updateError;
     }
 
-    console.log('✅ Stock updated in produk table');
 
     // ✅ Step 2: Insert adjustment history
     const tipe = selisih > 0 ? 'masuk' : 'keluar';
@@ -142,7 +130,6 @@ export async function POST(request: NextRequest) {
       throw insertError;
     }
 
-    console.log('✅ Adjustment history recorded successfully');
 
     return NextResponse.json({
       success: true,

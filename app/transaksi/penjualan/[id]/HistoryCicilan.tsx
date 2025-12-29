@@ -14,6 +14,7 @@ interface CicilanItem {
   tanggal_cicilan: string;
   jumlah_cicilan: number;
   keterangan: string;
+  type?: string;
   kas?: {
     nama_kas: string;
   };
@@ -114,8 +115,12 @@ export default function HistoryCicilan({
                 </td>
                 <td className="px-4 py-3">{cicilan.kas?.nama_kas || '-'}</td>
                 <td className="px-4 py-3">
-                  <span className="px-2 py-1 bg-cyan-100 text-cyan-800 rounded text-xs font-semibold">
-                    Cicilan
+                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                    cicilan.type === 'Pelunasan'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-cyan-100 text-cyan-800'
+                  }`}>
+                    {cicilan.type || 'Cicilan'}
                   </span>
                 </td>
                 <td className="px-4 py-3">
@@ -172,8 +177,12 @@ export default function HistoryCicilan({
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-cyan-100 mb-1">Type</p>
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-400 text-green-900">
-                      Cicilan
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      cicilan.type === 'Pelunasan'
+                        ? 'bg-orange-400 text-orange-900'
+                        : 'bg-green-400 text-green-900'
+                    }`}>
+                      {cicilan.type || 'Cicilan'}
                     </span>
                   </div>
                 </div>

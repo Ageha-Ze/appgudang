@@ -79,8 +79,6 @@ export default function ModalTambahKomposisi({
 
   const fetchProduks = async () => {
     try {
-      console.log('=== FAST FETCHING PRODUCTS FROM STOCK ===');
-      console.log('Cabang ID:', cabangId);
 
       // Use stock API for super fast fetching (denormalized data)
       const params = new URLSearchParams({
@@ -96,12 +94,9 @@ export default function ModalTambahKomposisi({
       }
 
       const json = await res.json();
-      console.log('📦 Stock API response:', json);
-      console.log('📊 Data items:', json.data?.length);
 
       // Transform stock data to produk format
       const stockData = json.data || [];
-      console.log('🔍 First few stock items:', stockData.slice(0, 3));
 
       const produkData: Produk[] = stockData
         .filter((item: any) => {
@@ -116,20 +111,12 @@ export default function ModalTambahKomposisi({
           hpp: parseFloat(item.hpp?.toString() || '0')
         }));
 
-      console.log('🎯 Filtered products with stock > 0:', produkData.length);
       setProduks(produkData);
 
       if (produkData.length === 0) {
         console.warn('⚠️ No products with stock > 0 found for cabang', cabangId);
-        console.log('Available stock data:', stockData.map((item: any) => ({
-          id: item.produk_id,
-          name: item.nama_produk,
-          stock: item.stock,
-          satuan: item.satuan
-        })));
 
         // Try fallback: show all products from master/produk if no stock data
-        console.log('🔄 Trying fallback: fetch from master/produk');
         try {
           const fallbackRes = await fetch('/api/master/produk');
           const fallbackJson = await fallbackRes.json();
@@ -144,7 +131,6 @@ export default function ModalTambahKomposisi({
             }));
 
             setProduks(fallbackProdukData);
-            console.log('✅ Fallback loaded products from master:', fallbackProdukData.length);
             alert('Menampilkan semua produk dari master (stock data belum tersedia).');
             return;
           }
@@ -154,7 +140,6 @@ export default function ModalTambahKomposisi({
 
         alert('Belum ada bahan baku dengan stock tersedia untuk cabang ini. Pastikan ada pembelian yang sudah diposting.');
       } else {
-        console.log('✅ Successfully loaded products with stock');
       }
     } catch (error) {
       console.error('❌ Error fetching produk from stock:', error);
@@ -171,7 +156,6 @@ export default function ModalTambahKomposisi({
 
       // Use simple HPP from produk table (no FIFO complexity)
       setHpp(selected?.hpp || 0);
-      console.log(`Simple HPP for produk ${itemId}: ${selected?.hpp || 0}`);
     } else {
       setSelectedProduk(null);
       setHpp(0);

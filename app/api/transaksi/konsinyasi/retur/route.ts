@@ -7,7 +7,6 @@ export async function POST(request: NextRequest) {
     const supabase = await supabaseAuthenticated();
     const body = await request.json();
 
-    console.log('📦 Processing retur konsinyasi:', body);
 
     // ✅ Validasi input
     if (!body.detail_konsinyasi_id || !body.jumlah_retur || !body.tanggal_retur) {
@@ -27,7 +26,6 @@ export async function POST(request: NextRequest) {
     }
 
     // ✅ Get detail konsinyasi dengan parent data
-    console.log('🔍 Searching for detail_konsinyasi_id:', body.detail_konsinyasi_id, 'type:', typeof body.detail_konsinyasi_id);
 
     const { data: detail, error: detailError } = await supabase
       .from('detail_konsinyasi')
@@ -48,7 +46,6 @@ export async function POST(request: NextRequest) {
       .eq('id', body.detail_konsinyasi_id)
       .single();
 
-    console.log('📋 Query result:', { detail: detail ? 'FOUND' : 'NOT FOUND', error: detailError });
 
     if (detailError || !detail) {
       console.error('❌ Error fetching detail:', detailError);
@@ -59,20 +56,12 @@ export async function POST(request: NextRequest) {
         .select('id')
         .limit(10);
 
-      console.log('📊 First 10 detail_konsinyasi IDs:', allDetails?.map(d => d.id));
 
       return NextResponse.json(
         { error: `Detail konsinyasi tidak ditemukan. ID: ${body.detail_konsinyasi_id}` },
         { status: 404 }
       );
     }
-
-    console.log('📋 Detail konsinyasi:', {
-      produk: detail.produk?.nama_produk,
-      jumlah_sisa: detail.jumlah_sisa,
-      jumlah_kembali: detail.jumlah_kembali,
-      status_konsinyasi: detail.konsinyasi?.status
-    });
 
     // ✅ Validasi: Cek status konsinyasi
     if (detail.konsinyasi?.status === 'selesai' || detail.konsinyasi?.status === 'dibatalkan') {
@@ -91,7 +80,6 @@ export async function POST(request: NextRequest) {
     const totalTerkirim = parseFloat(detail.jumlah_titip?.toString() || '0');
     const maksimumBisaDiretur = totalTerkirim - sudahTerjual;
 
-    console.log(`🔍 Retur check: total_terkirim-${totalTerkirim}, sudah_terjual-${sudahTerjual}, maksimum_retur-${maksimumBisaDiretur}, jumlah_sisa-${detail.jumlah_sisa}`);
 
     if (jumlah > maksimumBisaDiretur) {
       return NextResponse.json(
@@ -112,7 +100,6 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (existingRetur) {
-      console.log('⚠️ Duplicate retur detected, skipping...');
       return NextResponse.json({
         error: 'Retur dengan data yang sama sudah pernah dicatat hari ini'
       }, { status: 400 });
@@ -137,13 +124,11 @@ export async function POST(request: NextRequest) {
       throw returError;
     }
 
-    console.log('✅ Retur inserted:', retur.id);
 
     // ✅ Update detail konsinyasi
     const newJumlahSisa = detail.jumlah_sisa - jumlah;
     const newJumlahKembali = detail.jumlah_kembali + jumlah;
 
-    console.log(`📊 Updating detail: sisa ${detail.jumlah_sisa} → ${newJumlahSisa}, kembali ${detail.jumlah_kembali} → ${newJumlahKembali}`);
 
     const { error: updateError } = await supabase
       .from('detail_konsinyasi')
@@ -167,9 +152,6 @@ export async function POST(request: NextRequest) {
     // Items yang diretur hanya mengubah status detail konsinyasi (sisa → kembali)
     // Stock tetap sama karena barang sudah dikembalikan dari toko ke gudang saat pencatatan retur
 
-    console.log(`ℹ️ Retur konsinyasi: Stock produk tetap sama! (Hanya status konsinyasi berubah)`);
-    console.log(`   - Jumlah sisa berkurang: ${detail.jumlah_sisa} → ${newJumlahSisa}`);
-    console.log(`   - Jumlah kembali bertambah: ${detail.jumlah_kembali} → ${newJumlahKembali}`);
 
     return NextResponse.json({
       success: true,

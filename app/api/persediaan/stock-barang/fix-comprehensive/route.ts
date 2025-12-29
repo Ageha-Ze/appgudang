@@ -12,7 +12,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { mode } = body; // 'check' or 'fix'
 
-    console.log(`🔧 Stock Fix Mode: ${mode}`);
 
     // 1. Find missing pembelian entries
     const { data: pembelianMissing } = await supabase

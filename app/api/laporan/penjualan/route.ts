@@ -28,7 +28,6 @@ interface Cicilan {
 }
 
 export async function GET(request: NextRequest) {
-  console.log('🚀 [LAPORAN PENJUALAN API] Starting...');
   
   try {
     const supabase = await supabaseAuthenticated();
@@ -43,17 +42,6 @@ export async function GET(request: NextRequest) {
     const statusPembayaran = searchParams.get('status_pembayaran');
     const statusDiterima = searchParams.get('status_diterima');
     const jenisPembayaran = searchParams.get('jenis_pembayaran');
-
-    console.log('🔍 [FILTER]', {
-      startDate,
-      endDate,
-      cabangId,
-      customerId,
-      pegawaiId,
-      statusPembayaran,
-      statusDiterima,
-      jenisPembayaran
-    });
 
     // Build query
     let query = supabase
@@ -76,39 +64,30 @@ export async function GET(request: NextRequest) {
 
     // Apply filters
     if (startDate) {
-      console.log('📅 Applying start_date filter:', startDate);
       query = query.gte('tanggal', startDate);
     }
     if (endDate) {
-      console.log('📅 Applying end_date filter:', endDate);
       query = query.lte('tanggal', endDate);
     }
     if (cabangId) {
-      console.log('🏢 Applying cabang_id filter:', cabangId);
       query = query.eq('cabang_id', cabangId);
     }
     if (customerId) {
-      console.log('👤 Applying customer_id filter:', customerId);
       query = query.eq('customer_id', customerId);
     }
     if (pegawaiId) {
-      console.log('👨‍💼 Applying pegawai_id filter:', pegawaiId);
       query = query.eq('pegawai_id', pegawaiId);
     }
     if (statusPembayaran) {
-      console.log('💰 Applying status_pembayaran filter:', statusPembayaran);
       query = query.eq('status_pembayaran', statusPembayaran);
     }
     if (statusDiterima) {
-      console.log('📦 Applying status_diterima filter:', statusDiterima);
       query = query.eq('status_diterima', statusDiterima);
     }
     if (jenisPembayaran) {
-      console.log('💳 Applying jenis_pembayaran filter:', jenisPembayaran);
       query = query.eq('jenis_pembayaran', jenisPembayaran);
     }
 
-    console.log('⏳ Executing query...');
     const { data: penjualanList, error } = await query;
 
     if (error) {
@@ -116,10 +95,8 @@ export async function GET(request: NextRequest) {
       throw error;
     }
 
-    console.log('✅ [QUERY SUCCESS] Found', penjualanList?.length || 0, 'records');
     
     if (penjualanList && penjualanList.length > 0) {
-      console.log('📦 [SAMPLE DATA]', penjualanList[0]);
     }
 
     if (!penjualanList || penjualanList.length === 0) {
@@ -162,12 +139,10 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    console.log('🔄 Processing data with calculations...');
 
     // Enrich data with calculations
     const enrichedData = await Promise.all(
       penjualanList.map(async (p, index) => {
-        console.log(`  ⚙️ Processing item ${index + 1}/${penjualanList.length}:`, p.id);
         
         // Calculate subtotal from detail - FIX: Add explicit types
         const subtotal = (p.detail_penjualan || []).reduce(
@@ -215,8 +190,6 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    console.log('✅ Data enrichment complete');
-    console.log('📊 Calculating summary...');
 
     // Calculate summary statistics
     const summary = {
@@ -334,14 +307,6 @@ export async function GET(request: NextRequest) {
         : 0,
     };
 
-    console.log('✅ Summary calculated:', {
-      totalPenjualan: summary.totalPenjualan,
-      totalNilaiPenjualan: summary.totalNilaiPenjualan,
-      statusPembayaran: summary.statusPembayaran
-    });
-
-    console.log('🎉 [SUCCESS] Returning response');
-
     return NextResponse.json({
       success: true,
       data: enrichedData,
@@ -370,17 +335,14 @@ export async function GET(request: NextRequest) {
 
 // POST - untuk analisis khusus
 export async function POST(request: NextRequest) {
-  console.log('🚀 [POST LAPORAN PENJUALAN API] Starting...');
   
   try {
     const supabase = await supabaseAuthenticated();
     const body = await request.json();
     const { type, startDate, endDate } = body;
 
-    console.log('📋 Request type:', type);
 
     if (type === 'monthly_trend') {
-      console.log('📊 Generating monthly trend...');
       
       let query = supabase
         .from('transaksi_penjualan')
@@ -393,7 +355,6 @@ export async function POST(request: NextRequest) {
       const { data, error } = await query;
       if (error) throw error;
 
-      console.log('✅ Found', data?.length || 0, 'records for trend');
 
       const byMonth = (data || []).reduce((acc, p) => {
         const month = new Date(p.tanggal).toISOString().substring(0, 7);

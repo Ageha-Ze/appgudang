@@ -13,8 +13,6 @@ export async function POST(
     const { id } = await context.params;
     const body = await request.json();
 
-    console.log('🔥 PELUNASAN START - ID:', id);
-    console.log('📦 Body:', body);
 
     // Validasi kas_id
     if (!body.kas_id) {
@@ -55,10 +53,6 @@ export async function POST(
     // Use the higher value to ensure we don't miss any amounts
     const totalReal = Math.max(totalFromDetails, totalFromField);
 
-    console.log('🔍 TOTAL CALCULATION DEBUG:');
-    console.log('   Total from details:', totalFromDetails);
-    console.log('   Total from field:', totalFromField);
-    console.log('   Total Real used:', totalReal);
 
     // 🔥 HITUNG SUDAH DIBAYAR REAL dari cicilan yang ada
     const { data: existingCicilan } = await supabase
@@ -83,9 +77,6 @@ export async function POST(
       ? dibayarDariField  // dibayar field already includes cicilan
       : sudahDibayarReal + dibayarDariField; // add them up
 
-    console.log('📊 PERHITUNGAN PELUNASAN:');
-    console.log('   Total Real:', totalReal);
-    console.log('   Sudah Dibayar (dari field DB):', dibayarDariField);
 
     // Validasi - Use dibayar field as it's maintained by cicilan API
     const sisaPiutangAktual = totalReal - dibayarDariField;
@@ -127,12 +118,10 @@ export async function POST(
     }
 
     const saldoKasLama = parseFloat(kas.saldo);
-    console.log('🏦 Kas:', kas.nama_kas, '- Saldo Lama:', saldoKasLama);
 
     // 3. Hitung total dibayar baru (REAL dari cicilan + pelunasan ini)
     const totalDibayarBaru = sudahDibayarReal + sisaTagihan;
     
-    console.log('💰 Total Dibayar Baru:', sudahDibayarReal, '+', sisaTagihan, '=', totalDibayarBaru);
 
     // 4. Update transaksi_penjualan
     const updateData: any = {
@@ -146,7 +135,6 @@ export async function POST(
       const diskonSebelumnya = parseFloat(penjualan.nilai_diskon || '0');
       updateData.nilai_diskon = diskonSebelumnya + nilaiDiskon;
       
-      console.log('💸 Diskon Sebelumnya:', diskonSebelumnya, '+ Diskon Baru:', nilaiDiskon, '= Total Diskon:', updateData.nilai_diskon);
     }
 
     const { error: updatePenjualanError } = await supabase
@@ -159,7 +147,6 @@ export async function POST(
       throw updatePenjualanError;
     }
 
-    console.log('✅ Penjualan updated - dibayar:', totalDibayarBaru, 'status: Lunas');
 
     // 5. Update piutang_penjualan (jika ada)
     const { data: piutang } = await supabase
@@ -178,13 +165,11 @@ export async function POST(
         })
         .eq('penjualan_id', id);
 
-      console.log('✅ Piutang penjualan updated');
     }
 
     // 6. KAS BERTAMBAH (uang masuk dari pelunasan)
     const saldoKasBaru = saldoKasLama + sisaTagihan;
     
-    console.log('🏦 Update Kas:', saldoKasLama, '+', sisaTagihan, '=', saldoKasBaru);
 
     const { error: updateKasError } = await supabase
       .from('kas')
@@ -199,7 +184,6 @@ export async function POST(
       throw updateKasError;
     }
 
-    console.log('✅ Kas updated');
 
     // 7. Insert transaksi kas (KREDIT = uang masuk)
     const keteranganKas = `Pelunasan penjualan #${id}${nilaiDiskon > 0 ? ` (Diskon: Rp ${nilaiDiskon.toLocaleString('id-ID')})` : ''}`;
@@ -219,11 +203,10 @@ export async function POST(
       throw insertTransaksiKasError;
     }
 
-    console.log('✅ Transaksi kas inserted - Kredit:', sisaTagihan);
 
     // 8. Insert cicilan history
     const keteranganCicilan = `Pelunasan${nilaiDiskon > 0 ? ` (Diskon: Rp ${nilaiDiskon.toLocaleString('id-ID')})` : ''}`;
-    
+
     const { error: insertCicilanError } = await supabase
       .from('cicilan_penjualan')
       .insert({
@@ -231,7 +214,8 @@ export async function POST(
         tanggal_cicilan: body.tanggal_pelunasan,
         jumlah_cicilan: sisaTagihan, // ✅ Jumlah yang dibayar = sisa tagihan
         kas_id: body.kas_id,
-        keterangan: keteranganCicilan
+        keterangan: keteranganCicilan,
+        type: 'Pelunasan' // ✅ Set type to 'Pelunasan' to distinguish from regular cicilan
       });
 
     if (insertCicilanError) {
@@ -239,8 +223,6 @@ export async function POST(
       throw insertCicilanError;
     }
 
-    console.log('✅ Cicilan penjualan inserted - Jumlah:', sisaTagihan);
-    console.log('🎉 PELUNASAN SUKSES!');
 
     return NextResponse.json({
       success: true,

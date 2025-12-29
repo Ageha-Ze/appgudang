@@ -4,19 +4,16 @@ import { supabaseAuthenticated } from '@/lib/supabaseServer';
 // GET - Fetch all pegawai with relations
 export async function GET(request: NextRequest) {
   try {
-    console.log('[API Pegawai GET] Starting...');
-    
+
     const supabase = await supabaseAuthenticated();
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get('search') || '';
     const type = searchParams.get('type');
 
-    console.log('[API Pegawai GET] Type:', type, 'Search:', search);
 
     // Handle different GET types
     if (type === 'cabang') {
-      console.log('[API Pegawai GET] Fetching cabang...');
-      
+
       const { data, error } = await supabase
         .from('cabang')
         .select('id, kode_cabang, nama_cabang')
@@ -29,14 +26,12 @@ export async function GET(request: NextRequest) {
           { status: 500 }
         );
       }
-      
-      console.log('[API Pegawai GET] Cabang data count:', data?.length || 0);
+
       return NextResponse.json({ success: true, data: data || [] });
     }
 
     if (type === 'users') {
-      console.log('[API Pegawai GET] Fetching users...');
-      
+
       const { data, error } = await supabase
         .from('users')
         .select('id, username')
@@ -49,14 +44,12 @@ export async function GET(request: NextRequest) {
           { status: 500 }
         );
       }
-      
-      console.log('[API Pegawai GET] Users data count:', data?.length || 0);
+
       return NextResponse.json({ success: true, data: data || [] });
     }
 
     // Default: Get pegawai with relations
-    console.log('[API Pegawai GET] Fetching pegawai with relations...');
-    
+
     // First, try with relations
     let query = supabase
       .from('pegawai')
@@ -74,6 +67,12 @@ export async function GET(request: NextRequest) {
       `)
       .order('id', { ascending: true });
 
+    // Filter by cabang if provided
+    const cabangId = searchParams.get('cabang_id');
+    if (cabangId) {
+      query = query.eq('cabang_id', parseInt(cabangId));
+    }
+
     // Filter by search if provided
     if (search) {
       query = query.or(`nama.ilike.%${search}%,jabatan.ilike.%${search}%,no_telp.ilike.%${search}%,nomor_ktp.ilike.%${search}%`);
@@ -83,14 +82,13 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[API Pegawai GET] Pegawai error:', error);
-      
+
       // Fallback: Try without relations if error
-      console.log('[API Pegawai GET] Trying without relations...');
       const { data: fallbackData, error: fallbackError } = await supabase
         .from('pegawai')
         .select('*')
         .order('id', { ascending: true });
-      
+
       if (fallbackError) {
         console.error('[API Pegawai GET] Fallback also failed:', fallbackError);
         return NextResponse.json(
@@ -98,16 +96,14 @@ export async function GET(request: NextRequest) {
           { status: 500 }
         );
       }
-      
-      console.log('[API Pegawai GET] Fallback success, data count:', fallbackData?.length || 0);
-      return NextResponse.json({ 
-        success: true, 
+
+      return NextResponse.json({
+        success: true,
         data: fallbackData || [],
         warning: 'Loaded without relations due to error'
       });
     }
 
-    console.log('[API Pegawai GET] Pegawai data count:', data?.length || 0);
     return NextResponse.json({ success: true, data: data || [] });
   } catch (error: any) {
     console.error('[API Pegawai GET] Unexpected error:', error);
@@ -121,9 +117,7 @@ export async function GET(request: NextRequest) {
 // POST - Create new pegawai
 export async function POST(request: NextRequest) {
   try {
-    console.log('[API Pegawai POST] Starting...');
     const body = await request.json();
-    console.log('[API Pegawai POST] Body:', JSON.stringify(body, null, 2));
 
     const supabase = await supabaseAuthenticated();
 
@@ -136,8 +130,8 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('[API Pegawai POST] Insert error:', error);
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: error.message,
           message: 'Gagal menambahkan pegawai'
         },
@@ -145,7 +139,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[API Pegawai POST] Success, created ID:', data?.id);
     return NextResponse.json({
       success: true,
       data,
@@ -163,10 +156,8 @@ export async function POST(request: NextRequest) {
 // PUT - Update pegawai
 export async function PUT(request: NextRequest) {
   try {
-    console.log('[API Pegawai PUT] Starting...');
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get('id');
-    console.log('[API Pegawai PUT] ID:', id);
 
     if (!id) {
       return NextResponse.json(
@@ -176,10 +167,9 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    console.log('[API Pegawai PUT] Body:', JSON.stringify(body, null, 2));
 
     const supabase = await supabaseAuthenticated();
-    
+
     const { data, error } = await supabase
       .from('pegawai')
       .update(body)
@@ -190,8 +180,8 @@ export async function PUT(request: NextRequest) {
     if (error) {
       console.error('[API Pegawai PUT] Update error:', error);
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: error.message,
           message: 'Gagal mengupdate pegawai'
         },
@@ -199,7 +189,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    console.log('[API Pegawai PUT] Success, updated ID:', data?.id);
     return NextResponse.json({
       success: true,
       data,
@@ -221,10 +210,8 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete pegawai
 export async function DELETE(request: NextRequest) {
   try {
-    console.log('[API Pegawai DELETE] Starting...');
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get('id');
-    console.log('[API Pegawai DELETE] ID:', id);
 
     if (!id) {
       return NextResponse.json(
@@ -236,7 +223,6 @@ export async function DELETE(request: NextRequest) {
     const supabase = await supabaseAuthenticated();
 
     // Check if pegawai is still referenced in other tables
-    console.log('[API Pegawai DELETE] Checking references...');
     const { data: references, error: refError } = await supabase
       .from('transaksi_penjualan')
       .select('id')
@@ -249,7 +235,6 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (references && references.length > 0) {
-      console.log('[API Pegawai DELETE] Has references, cannot delete');
       return NextResponse.json(
         {
           success: false,
@@ -260,7 +245,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log('[API Pegawai DELETE] No references found, proceeding with delete...');
     const { error } = await supabase
       .from('pegawai')
       .delete()
@@ -269,8 +253,8 @@ export async function DELETE(request: NextRequest) {
     if (error) {
       console.error('[API Pegawai DELETE] Delete error:', error);
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: error.message,
           message: 'Gagal menghapus pegawai'
         },
@@ -278,7 +262,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log('[API Pegawai DELETE] Success, deleted ID:', id);
     return NextResponse.json({
       success: true,
       message: 'Pegawai berhasil dihapus'

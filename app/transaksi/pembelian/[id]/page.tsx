@@ -95,17 +95,6 @@ export default function DetailPembelianPage({
     canManage: 'purchase.manage',
   });
 
-  console.log('Keuangan Permission Debug:', {
-    user: 'keuangan (simulated)',
-    permissions: {
-      canView: permissions.canView,
-      canCreate: permissions.canCreate,
-      canEdit: permissions.canEdit,
-      canManage: permissions.canManage,
-    },
-    isReadOnly: permissions.canView && !permissions.canManage
-  });
-
   const isReadOnly = permissions.canView && !permissions.canManage;
 
   useEffect(() => {
@@ -405,10 +394,7 @@ export default function DetailPembelianPage({
               {isPending && (
                 <button
                   onClick={() => {
-    console.log('Button clicked!');
-    console.log('showModalBarang sebelum:', showModalBarang);
     setShowModalBarang(true);
-    console.log('showModalBarang sesudah:', true);
   }}
                   className="px-5 py-2.5 bg-white text-purple-600 rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-105 font-semibold"
                 >

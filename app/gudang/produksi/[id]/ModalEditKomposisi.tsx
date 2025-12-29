@@ -93,8 +93,6 @@ export default function ModalEditKomposisi({
 
   const fetchProduks = async () => {
     try {
-      console.log('=== FETCHING PRODUCTS FROM STOCK ===');
-      console.log('Cabang ID:', cabangId);
 
       // Use stock API for super fast fetching (denormalized data)
       const params = new URLSearchParams({
@@ -110,7 +108,6 @@ export default function ModalEditKomposisi({
       }
 
       const json = await res.json();
-      console.log('📦 Stock API response:', json);
 
       // Transform stock data to produk format
       const stockData = json.data || [];
@@ -127,7 +124,6 @@ export default function ModalEditKomposisi({
           hpp: parseFloat(item.hpp?.toString() || '0')
         }));
 
-      console.log('🎯 Filtered products with stock > 0:', produkData.length);
       setProduks(produkData);
 
       // Set selected product after products are loaded
@@ -150,7 +146,6 @@ export default function ModalEditKomposisi({
 
       // Use simple HPP from produk table (no FIFO complexity)
       setHpp(selected?.hpp || 0);
-      console.log(`Simple HPP for produk ${itemId}: ${selected?.hpp || 0}`);
     } else {
       setSelectedProduk(null);
       setHpp(0);

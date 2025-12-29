@@ -41,8 +41,6 @@ export async function GET(request: NextRequest) {
       throw piutangError;
     }
 
-    console.log('Piutang data from database:', piutangData);
-    console.log('Piutang data count:', piutangData?.length || 0);
 
     // 🔍 DEBUG: Check for penjualan transactions with hutang payment
     const { data: penjualanHutang, error: penjualanError } = await supabase
@@ -51,12 +49,9 @@ export async function GET(request: NextRequest) {
       .eq('jenis_pembayaran', 'hutang')
       .eq('status', 'billed');
 
-    console.log('Penjualan with hutang payment:', penjualanHutang);
-    console.log('Penjualan hutang count:', penjualanHutang?.length || 0);
 
     // 🔧 FIX: Create missing piutang records for existing credit sales
     if (penjualanHutang && penjualanHutang.length > 0) {
-      console.log('🔧 Creating/updating piutang records for credit sales...');
 
       // Delete existing piutang records to recalculate with correct logic
       await supabase
@@ -101,7 +96,6 @@ export async function GET(request: NextRequest) {
           if (createError) {
             console.error(`❌ Failed to create piutang for penjualan ${penjualan.id}:`, createError);
           } else {
-            console.log(`✅ Created piutang for penjualan ${penjualan.id} (${status})`);
           }
         }
       }
@@ -125,7 +119,6 @@ export async function GET(request: NextRequest) {
 
       const { data: updatedPiutangData } = await reQuery;
       piutangData = updatedPiutangData;
-      console.log('Updated piutang data count:', piutangData?.length || 0);
     }
 
     // Ambil semua customer_id yang unik

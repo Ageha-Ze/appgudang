@@ -51,7 +51,6 @@ export async function GET(request: NextRequest) {
       created_at: item.created_at
     })) || [];
 
-    console.log('Formatted Data:', formattedData); // Debug log
 
     // Hitung saldo awal, masuk, keluar hanya untuk kas yang dipilih
     let saldoAwal = 0;
@@ -60,8 +59,6 @@ export async function GET(request: NextRequest) {
 
     if (kasId) {
       // Debug: cek tanggal yang digunakan
-      console.log('Tanggal filter:', tanggal);
-      console.log('Kas ID:', kasId);
       
       // Ambil saldo akhir transaksi terakhir sebelum tanggal ini (tidak peduli tanggal)
       const { data: transaksiTerakhir, error: errLast } = await supabase
@@ -72,11 +69,9 @@ export async function GET(request: NextRequest) {
         .order('created_at', { ascending: false })
         .limit(1);
 
-      console.log('Transaksi terakhir sebelum tanggal ini:', transaksiTerakhir);
 
       if (transaksiTerakhir && transaksiTerakhir.length > 0) {
         saldoAwal = Number(transaksiTerakhir[0].saldo_setelah);
-        console.log(`✅ Saldo awal dari transaksi terakhir (${transaksiTerakhir[0].tanggal}): ${saldoAwal}`);
       } else {
         // Jika belum ada transaksi sebelumnya, ambil dari tabel kas
         const { data: kasData } = await supabase
@@ -87,9 +82,7 @@ export async function GET(request: NextRequest) {
         
         if (kasData) {
           saldoAwal = Number(kasData.saldo);
-          console.log(`⚠️ Saldo awal dari tabel kas (no previous transaction): ${saldoAwal}`);
         } else {
-          console.log('❌ Kas tidak ditemukan!');
         }
       }
 
@@ -318,7 +311,6 @@ async function handleTransfer(body: any) {
       throw new Error('Gagal update saldo kas penerima');
     }
 
-    console.log(`✅ Transfer complete: ${dariKas.nama_kas} -> ${keKas.nama_kas}`);
 
     return NextResponse.json({
       success: true,
@@ -444,7 +436,6 @@ export async function POST(request: NextRequest) {
       throw new Error('Gagal update saldo kas');
     }
 
-    console.log(`✅ Saldo kas ${kas_id} updated to ${saldoSetelah}`);
 
     return NextResponse.json({
       success: true,
@@ -491,7 +482,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log('Deleting transaction:', transactionToDelete);
 
     // Hapus transaksi
     const { error: deleteError } = await supabase
@@ -516,14 +506,11 @@ export async function DELETE(request: NextRequest) {
       ? -Number(transactionToDelete.jumlah)
       : Number(transactionToDelete.jumlah);
 
-    console.log('Adjustment:', adjustment);
-    console.log('Later transactions:', laterTransactions?.length || 0);
 
     if (laterTransactions && laterTransactions.length > 0) {
       // Update setiap transaksi setelahnya
       for (const trans of laterTransactions) {
         const newSaldo = Number(trans.saldo_setelah) + adjustment;
-        console.log(`Updating transaction ${trans.id}: ${trans.saldo_setelah} -> ${newSaldo}`);
         
         await supabase
           .from('kas_harian')
@@ -537,7 +524,6 @@ export async function DELETE(request: NextRequest) {
       const lastTrans = laterTransactions[laterTransactions.length - 1];
       const finalSaldo = Number(lastTrans.saldo_setelah) + adjustment;
       
-      console.log(`Updating kas ${transactionToDelete.kas_id}: saldo -> ${finalSaldo}`);
       
       await supabase
         .from('kas')
@@ -559,7 +545,6 @@ export async function DELETE(request: NextRequest) {
         ? Number(beforeTrans[0].saldo_setelah)
         : 0;
 
-      console.log(`No later transactions. Updating kas ${transactionToDelete.kas_id}: saldo -> ${newSaldo}`);
 
       await supabase
         .from('kas')

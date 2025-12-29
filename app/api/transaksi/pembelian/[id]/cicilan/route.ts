@@ -266,7 +266,6 @@ export async function PUT(
       const oldKasSaldo = parseFloat(oldKas.saldo || 0);
       const restoredSaldo = oldKasSaldo + oldJumlah;
 
-      console.log(`✅ Returning ${oldJumlah} to ${oldKas.nama_kas} (${oldKasSaldo} -> ${restoredSaldo})`);
 
       const { error: updateOldKasError } = await supabase
         .from('kas')
@@ -318,7 +317,6 @@ export async function PUT(
     const newKasSaldo = parseFloat(newKas.saldo || 0);
     const finalSaldo = newKasSaldo - newJumlah;
 
-    console.log(`✅ Deducting ${newJumlah} from ${newKas.nama_kas} (${newKasSaldo} -> ${finalSaldo})`);
 
     if (finalSaldo < 0) {
       throw new Error(`Saldo kas ${newKas.nama_kas} tidak mencukupi (tersedia: ${newKasSaldo}, butuh: ${newJumlah})`);

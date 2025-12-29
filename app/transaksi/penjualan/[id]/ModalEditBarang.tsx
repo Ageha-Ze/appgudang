@@ -47,10 +47,6 @@ export default function ModalEditBarang({
 
   useEffect(() => {
     if (isOpen && detail) {
-      console.log('📦 DETAIL DATA:', detail);
-      console.log('🆔 produk_id:', detail.produk_id);
-      console.log('🆔 produk.id:', detail.produk?.id);
-      console.log('🏢 cabangId:', cabangId);
       
       // Set form data dari detail yang dipilih
       setFormData({
@@ -63,7 +59,6 @@ export default function ModalEditBarang({
       const produkId = detail.produk_id || detail.produk?.id;
       
       if (produkId && cabangId) {
-        console.log('🔍 Fetching stock for produk_id:', produkId);
         fetchStockInfo(produkId);
       } else {
         console.error('❌ Missing produk_id or cabangId:', { produkId, cabangId });
@@ -80,28 +75,20 @@ export default function ModalEditBarang({
 
     try {
       setLoadingStock(true);
-      console.log('🔍 Fetching stock for produk_id:', produkId, 'cabang_id:', cabangId);
       
       const url = `/api/persediaan/stock-barang?cabang_id=${cabangId}&mode=aggregated&limit=1000`;
-      console.log('📡 Fetch URL:', url);
       const res = await fetch(url);
       const json = await res.json();
       
-      console.log('📊 API Response:', json);
-      console.log('📦 Total products in stock:', json.data?.length || 0);
       
       if (json.data && Array.isArray(json.data)) {
-        console.log('🔎 Searching for produk_id:', produkId);
-        console.log('📋 Available produk_ids:', json.data.map((s: StockBarang) => s.produk_id));
         
         const stock = json.data.find((s: StockBarang) => s.produk_id === produkId);
-        console.log('✅ Found stock:', stock);
         setStockInfo(stock || null);
         
         // ✅ Warning jika stock tidak ditemukan
         if (!stock) {
           console.error(`❌ Stock untuk produk_id ${produkId} tidak ditemukan di cabang ${cabangId}`);
-          console.log('💡 Hint: Pastikan produk ini ada stock_barang entry untuk cabang ini');
         }
       } else {
         console.error('❌ Invalid API response format:', json);

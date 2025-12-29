@@ -83,7 +83,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     if (error) throw error;
 
-    console.log(`✅ Detail deleted and stock restored: +${detail.jumlah} to item ${detail.item_id}`);
 
     return NextResponse.json({
       success: true,

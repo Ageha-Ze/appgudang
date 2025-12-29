@@ -84,12 +84,6 @@ export default function ModalCicilan({
     setLoading(true);
 
     try {
-      console.log('📤 Sending cicilan:', {
-        hutangId,
-        ...formData,
-        kas_id: parseInt(formData.kas_id),
-      });
-
       const res = await fetch(`/api/keuangan/hutang-umum/${hutangId}/cicilan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

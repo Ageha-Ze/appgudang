@@ -45,7 +45,6 @@ export async function POST(
     const { id } = await context.params;
     const body = await request.json();
 
-    console.log('✅ Processing cicilan:', id, body);
 
     // Validasi
     if (!body.kas_id) {
@@ -76,7 +75,6 @@ export async function POST(
     const sisa = total - dibayarSebelumnya;
     const jumlahCicilan = parseFloat(body.jumlah_cicilan);
 
-    console.log('📊 Data:', { total, dibayarSebelumnya, sisa, jumlahCicilan });
 
     // 2. Validasi cicilan tidak melebihi sisa
     if (jumlahCicilan > sisa) {
@@ -90,7 +88,6 @@ export async function POST(
     const sisaBaru = total - dibayarBaru;
     const statusBaru = sisaBaru <= 0 ? 'Lunas' : 'Cicil';
 
-    console.log('💰 Perhitungan:', { dibayarBaru, sisaBaru, statusBaru });
 
     // 3. Update transaksi_penjualan
     await supabase
@@ -102,7 +99,6 @@ export async function POST(
       })
       .eq('id', id);
 
-    console.log('✅ Penjualan updated');
 
     // 4. Update piutang_penjualan (jika ada)
     const { data: piutang } = await supabase
@@ -121,7 +117,6 @@ export async function POST(
         })
         .eq('penjualan_id', id);
 
-      console.log('✅ Piutang updated');
     }
 
     // 5. Get kas data
@@ -137,7 +132,6 @@ export async function POST(
     const saldoKasLama = parseFloat(kas.saldo);
     const saldoKasBaru = saldoKasLama + jumlahCicilan;
     
-    console.log(`💵 Kas ${kas.nama_kas}: ${saldoKasLama} + ${jumlahCicilan} = ${saldoKasBaru}`);
 
     await supabase
       .from('kas')
@@ -166,7 +160,6 @@ export async function POST(
         keterangan: body.keterangan || ''
       });
 
-    console.log('✅ Cicilan berhasil! Kas bertambah:', jumlahCicilan);
 
     return NextResponse.json({
       success: true,

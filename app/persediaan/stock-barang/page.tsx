@@ -63,7 +63,6 @@ export default function StockBarangPage() {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768; // Mobile if less than 768px (md breakpoint)
       setIsMobile(mobile);
-      console.log('Mobile detection:', mobile, 'Width:', window.innerWidth);
     };
 
     checkMobile();
@@ -112,13 +111,11 @@ export default function StockBarangPage() {
         cabang_id: selectedCabang.toString(),
       });
 
-      console.log('🔍 Fetching stocks with cabang filter:', selectedCabang);
 
       const res = await fetch(`/api/persediaan/stock-barang?${params}`);
       const json = await res.json();
 
       if (json.success) {
-        console.log(`✅ Got ${json.data?.length || 0} stock items for cabang ${selectedCabang}`);
         setStocks(json.data || []);
         setTotalPages(json.pagination?.totalPages || 1);
       }
@@ -196,7 +193,6 @@ export default function StockBarangPage() {
       harga_jual: data.hargaJual,
     };
 
-    console.log('🚀 Sending Edit Produk request:', requestData);
 
     try {
       const response = await fetch('/api/persediaan/stock-barang/update-produk', {
@@ -205,8 +201,6 @@ export default function StockBarangPage() {
         body: JSON.stringify(requestData),
       });
 
-      console.log('📡 Response status:', response.status);
-      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         let errorMessage = 'Gagal mengupdate produk';
@@ -219,7 +213,6 @@ export default function StockBarangPage() {
           errorMessage = 'Server mengalami masalah. Silakan coba lagi.';
         } else {
           const errorJson = await response.json().catch(() => null);
-          console.log('❌ Error response:', errorJson);
           if (errorJson?.error) {
             errorMessage += ': ' + errorJson.error;
           }
@@ -232,7 +225,6 @@ export default function StockBarangPage() {
       }
 
       const result = await response.json();
-      console.log('✅ API Response:', result);
 
       if (result.success) {
         customToast.success('Success!');

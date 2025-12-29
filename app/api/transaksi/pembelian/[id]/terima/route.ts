@@ -12,7 +12,6 @@ export async function POST(
     const { id: pembelian_id } = await context.params;
     const supabase = await supabaseAuthenticated();
 
-    console.log('📦 Processing terima barang for pembelian:', pembelian_id);
 
     // ✅ Get pembelian data
     const { data: pembelian, error: pembelianError } = await supabase
@@ -42,7 +41,6 @@ export async function POST(
       );
     }
 
-    console.log('📋 Pembelian:', pembelian.nota_supplier);
 
     // ✅ Validation: Must be billed first
     if (pembelian.status !== 'billed') {
@@ -54,7 +52,6 @@ export async function POST(
 
     // ✅ Validation: Already received?
     if (pembelian.status_barang === 'Diterima') {
-      console.log('⚠️ Barang already received');
       return NextResponse.json({
         error: 'Barang sudah diterima sebelumnya'
       }, { status: 400 });
@@ -86,13 +83,11 @@ export async function POST(
       .limit(1);
 
     if (stockCheck && stockCheck.length > 0) {
-      console.log('⚠️ Stock already recorded');
       return NextResponse.json({
         error: 'Stock untuk pembelian ini sudah pernah dicatat'
       }, { status: 400 });
     }
 
-    console.log(`📦 Processing ${detail_pembelian.length} items...`);
 
     // ✅ Collect all stock updates first (validation phase)
     const stockUpdates: Array<{
@@ -152,10 +147,6 @@ export async function POST(
         newHarga = newHPP * 1.2;
       }
 
-      console.log(`  📦 ${produkData.nama_produk}:`);
-      console.log(`    Stock: ${currentStok} + ${jumlahMasuk} = ${newStok}`);
-      console.log(`    HPP: ${currentHPP} → ${newHPP.toFixed(2)} (weighted avg)`);
-      console.log(`    Harga: ${currentHarga} → ${newHarga.toFixed(2)}`);
 
       stockUpdates.push({
         produk_id: item.produk_id,
@@ -170,7 +161,6 @@ export async function POST(
       });
     }
 
-    console.log('✅ All items validated, proceeding with updates...');
 
     // ✅ Update status AFTER validation, BEFORE stock updates
     const { error: updateStatusError } = await supabase
@@ -187,7 +177,6 @@ export async function POST(
       throw updateStatusError;
     }
 
-    console.log('✅ Status updated to Diterima');
 
     // ✅ Apply all stock updates
     let successCount = 0;
@@ -234,7 +223,6 @@ export async function POST(
           continue;
         }
 
-        console.log(`  ✅ ${update.nama_produk} updated successfully`);
         successCount++;
       } catch (itemError: any) {
         console.error(`❌ Error processing ${update.nama_produk}:`, itemError);
@@ -246,7 +234,6 @@ export async function POST(
     const totalItems = stockUpdates.length;
     const failedCount = errors.length;
 
-    console.log(`✅ Processed: ${successCount}/${totalItems} items`);
 
     if (failedCount > 0) {
       console.error(`⚠️ ${failedCount} items failed:`, errors);
@@ -280,7 +267,6 @@ export async function POST(
     }
 
     // All success
-    console.log('✅ All stock recorded successfully!');
 
     return NextResponse.json({
       success: true,
@@ -305,7 +291,6 @@ export async function POST(
         })
         .eq('id', parseInt(pembelian_id));
       
-      console.log('🔄 Status rolled back');
     } catch (rollbackError) {
       console.error('⚠️ Failed to rollback:', rollbackError);
     }

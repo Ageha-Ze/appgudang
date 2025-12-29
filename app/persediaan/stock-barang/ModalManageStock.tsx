@@ -209,7 +209,6 @@ export default function ModalManageStock({
         };
       }
 
-      console.log('📤 Sending request:', { endpoint, body });
 
       const res = await fetch(endpoint, {
         method,

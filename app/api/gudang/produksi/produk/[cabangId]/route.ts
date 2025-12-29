@@ -9,7 +9,6 @@ export async function GET(
     const supabase = await supabaseAuthenticated();
     const { cabangId } = await context.params;
 
-    console.log('Fetching produk produksi for cabang:', cabangId);
 
     // Query produk yang ada stock di cabang tertentu
     const { data, error } = await supabase
@@ -34,7 +33,6 @@ export async function GET(
       throw error;
     }
 
-    console.log('Raw query result:', data);
 
     // Transform data untuk hapus duplikasi produk
     const uniqueProducts = new Map();
@@ -45,7 +43,6 @@ export async function GET(
     });
 
     const products = Array.from(uniqueProducts.values());
-    console.log('Unique products:', products);
 
     return NextResponse.json({ data: products });
   } catch (error: any) {

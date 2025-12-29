@@ -109,7 +109,6 @@ export async function POST(request: NextRequest) {
     const supabase = await supabaseAuthenticated();
     const body = await request.json();
 
-    console.log('🛒 Creating pembelian:', body);
 
     // ✅ Validasi required fields
     if (!body.tanggal || !body.suplier_id || !body.cabang_id) {
@@ -149,7 +148,6 @@ export async function POST(request: NextRequest) {
 
     const nota_supplier = `PB-${today}-${notaNumber.toString().padStart(4, '0')}`;
 
-    console.log('📝 Generated nota:', nota_supplier);
 
     // ✅ Prepare initial totals (will be recalculated after detail added)
     const biayaKirim = body.show_biaya_kirim ? parseFloat(body.biaya_kirim || '0') : 0;
@@ -179,7 +177,6 @@ export async function POST(request: NextRequest) {
       keterangan: body.keterangan || '',
     };
 
-    console.log('📦 Pembelian data:', pembelianData);
 
     // ✅ Insert pembelian
     const { data: pembelian, error: insertError } = await supabase
@@ -197,11 +194,9 @@ export async function POST(request: NextRequest) {
       throw insertError;
     }
 
-    console.log('✅ Pembelian created:', pembelian.id);
 
     // ✅ Update kas jika ada uang muka
     if (uangMuka > 0 && body.kas_id) {
-      console.log('💰 Processing uang muka:', uangMuka);
 
       // Get current saldo kas
       const { data: kas, error: kasError } = await supabase
@@ -240,7 +235,6 @@ export async function POST(request: NextRequest) {
 
       const saldoBaru = saldoLama - uangMuka;
 
-      console.log(`  ${kas.nama_kas}: ${saldoLama} - ${uangMuka} = ${saldoBaru}`);
 
       // Update saldo kas
       const { error: updateKasError } = await supabase
@@ -278,7 +272,6 @@ export async function POST(request: NextRequest) {
         // Don't rollback, saldo already updated
       }
 
-      console.log('✅ Kas updated & transaksi recorded');
     }
 
     // ✅ Compute canonical totals and attach for client
@@ -296,7 +289,6 @@ export async function POST(request: NextRequest) {
         tagihan: Math.max(0, tagihan)
       };
 
-      console.log('💵 Totals:', { subtotal, finalTotal, tagihan });
 
       // ✅ Update status pembayaran if uang_muka >= finalTotal
       if (uangMuka >= finalTotal && finalTotal > 0) {
@@ -306,13 +298,11 @@ export async function POST(request: NextRequest) {
           .eq('id', pembelian.id);
         
         pembelianEnriched.status_pembayaran = 'Lunas';
-        console.log('✅ Status pembayaran: Lunas');
       }
     } catch (e) {
       console.error('Error calculating totals:', e);
     }
 
-    console.log('✅ Pembelian created successfully');
 
     return NextResponse.json({
       success: true,

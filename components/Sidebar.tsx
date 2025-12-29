@@ -89,6 +89,7 @@ const menuItems: MenuItem[] = [
           { id: 'laporan-penjualan', name: 'Selling', icon: FileText, href: '/laporan/penjualan' },
           { id: 'laporan-hutang', name: 'Payable', icon: FileText, href: '/laporan/hutang' },
           { id: 'laporan-piutang', name: 'Receivable', icon: FileText, href: '/laporan/piutang' },
+          { id: 'laporan-konsinyasi', name: 'Consignment', icon: Package, href: '/laporan/konsinyasi' },
           { id: 'laporan-movement', name: 'Stock Movement (FIFO)', icon: Package, href: '/laporan/laporan-movement' },
           { id: 'laporan-sales', name: 'Sales by Employee', icon: Users, href: '/laporan/sales' },
           { id: 'laporan-laba-rugi', name: 'Financial Analysis', icon: FileText, href: '/laporan/laba-rugi' },
@@ -239,13 +240,6 @@ const getFilteredMenuItems = () => {
 
   return filtered;
 };
-// TEMPORARY DEBUG: Remove this after testing
-console.log('🔍 SIDEBAR USER DEBUG:', {
-  user,
-  userLevel: user?.level,
-  hasUser: !!user,
-  filteredCount: getFilteredMenuItems().length,
-});
 
 useEffect(() => {
   console.log('=== SIDEBAR DEBUG ===');

@@ -14,7 +14,6 @@ export async function PUT(
     const { id, cicilanId } = await context.params;
     const body = await request.json();
 
-    console.log('📝 Updating cicilan:', cicilanId, body);
 
     // 1. Get old cicilan data
     const { data: oldCicilan, error: getCicilanError } = await supabase
@@ -30,7 +29,6 @@ export async function PUT(
     const selisih = newJumlah - oldJumlah;
     const gantiKas = oldCicilan.kas_id !== body.kas_id;
 
-    console.log('📊 Update info:', { oldJumlah, newJumlah, selisih, gantiKas });
 
     // 2. Get penjualan data
     const { data: penjualan } = await supabase
@@ -76,7 +74,6 @@ export async function PUT(
       })
       .eq('id', id);
 
-    console.log('✅ Penjualan updated:', { dibayarBaru, sisaBaru, statusBaru });
 
     // 5. Update piutang (jika ada)
     const { data: piutang } = await supabase
@@ -95,13 +92,11 @@ export async function PUT(
         })
         .eq('penjualan_id', id);
 
-      console.log('✅ Piutang updated');
     }
 
     // 6. Update kas
     if (gantiKas) {
       // GANTI REKENING KAS
-      console.log('💳 Ganti rekening kas...');
 
       // Kurangi dari kas lama
       const { data: kasLama } = await supabase
@@ -117,7 +112,6 @@ export async function PUT(
           .update({ saldo: saldoKasLamaBaru })
           .eq('id', oldCicilan.kas_id);
 
-        console.log(`🏦 Kas lama ${kasLama.nama_kas}: ${kasLama.saldo} - ${oldJumlah} = ${saldoKasLamaBaru}`);
       }
 
       // Tambah ke kas baru
@@ -134,7 +128,6 @@ export async function PUT(
           .update({ saldo: saldoKasBaruBaru })
           .eq('id', body.kas_id);
 
-        console.log(`🏦 Kas baru ${kasBaru.nama_kas}: ${kasBaru.saldo} + ${newJumlah} = ${saldoKasBaruBaru}`);
       }
 
       // Delete transaksi kas lama
@@ -157,7 +150,6 @@ export async function PUT(
         });
     } else if (selisih !== 0) {
       // JUMLAH BERUBAH (kas tetap)
-      console.log('💰 Update jumlah cicilan...');
 
       const { data: kas } = await supabase
         .from('kas')
@@ -172,7 +164,6 @@ export async function PUT(
           .update({ saldo: saldoKasBaru })
           .eq('id', body.kas_id);
 
-        console.log(`🏦 Kas ${kas.nama_kas}: ${kas.saldo} + ${selisih} = ${saldoKasBaru}`);
       }
 
       // Update transaksi kas
@@ -202,7 +193,6 @@ export async function PUT(
         .ilike('keterangan', `%Cicilan penjualan #${id}%`);
     }
 
-    console.log('✅ Cicilan berhasil diupdate!');
 
     return NextResponse.json({
       success: true,
@@ -224,7 +214,6 @@ export async function DELETE(
     const supabase = await supabaseAuthenticated();
     const { id, cicilanId } = await context.params;
 
-    console.log('🗑️ Deleting cicilan:', cicilanId);
 
     // 1. Get cicilan data
     const { data: cicilan, error: getCicilanError } = await supabase
@@ -252,7 +241,6 @@ export async function DELETE(
     const sisaBaru = total - dibayarBaru;
     const statusBaru = sisaBaru <= 0 ? 'Lunas' : (dibayarBaru > 0 ? 'Cicil' : 'Belum Lunas');
 
-    console.log('📊 Perhitungan:', { total, dibayarSebelumnya, jumlah, dibayarBaru, sisaBaru });
 
     // 3. Delete cicilan
     await supabase
@@ -269,7 +257,6 @@ export async function DELETE(
       })
       .eq('id', id);
 
-    console.log('✅ Penjualan updated');
 
     // 5. Update piutang (jika ada)
     const { data: piutang } = await supabase
@@ -288,7 +275,6 @@ export async function DELETE(
         })
         .eq('penjualan_id', id);
 
-      console.log('✅ Piutang updated');
     }
 
     // 6. ✅ KAS BERKURANG (pembayaran dibatalkan)
@@ -302,7 +288,6 @@ export async function DELETE(
 
     const saldoKasBaru = parseFloat(kas.saldo) - jumlah;
     
-    console.log(`🏦 Kas ${kas.nama_kas}: ${kas.saldo} - ${jumlah} = ${saldoKasBaru}`);
 
     await supabase
       .from('kas')
@@ -318,7 +303,6 @@ export async function DELETE(
       .eq('kredit', jumlah)
       .ilike('keterangan', `%Cicilan penjualan #${id}%`);
 
-    console.log('✅ Cicilan berhasil dihapus dan kas dikurangi!');
 
     return NextResponse.json({
       success: true,

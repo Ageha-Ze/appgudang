@@ -171,7 +171,6 @@ export default function PenjualanListPage() {
       const json = await res.json();
 
       if (json.success) {
-        console.log('✅ Delete successful:', json);
         // Show success toast
         customToast.success('Data penjualan telah dihapus dan saldo kas dikembalikan.');
 

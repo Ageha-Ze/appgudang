@@ -9,7 +9,6 @@ export async function GET(
     const supabase = await supabaseAuthenticated();
     const { cabangId } = await context.params; // AWAIT params
 
-    console.log('Fetching bahan for cabang:', cabangId);
 
     // Step 1: Cari produk yang ada di stock_barang untuk cabang ini
     const { data: stockData, error: stockError } = await supabase
@@ -25,16 +24,13 @@ export async function GET(
 
     // Jika tidak ada produk di cabang ini
     if (!stockData || stockData.length === 0) {
-      console.log('No products found in stock for cabang:', cabangId);
       return NextResponse.json({ data: [] });
     }
 
     // Extract produk IDs
     const produkIds = [...new Set(stockData.map(item => item.produk_id))];
-    console.log('Found produk IDs in cabang:', produkIds);
 
     // Step 2: Calculate actual available stock for each product in this cabang
-    console.log('Calculating current stock for each product in cabang:', cabangId);
 
     const bahan = [];
     for (const produkId of produkIds) {
@@ -61,7 +57,6 @@ export async function GET(
         }
       });
 
-      console.log(`Produk ${produkId} current stock in cabang ${cabangId}:`, currentStock);
 
       // Only include products with positive stock
       if (currentStock > 0) {
@@ -87,7 +82,6 @@ export async function GET(
       }
     }
 
-    console.log('Transformed bahan data to match modal format:', bahan);
 
     return NextResponse.json({ data: bahan });
   } catch (error: any) {

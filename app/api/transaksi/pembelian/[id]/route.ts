@@ -19,7 +19,6 @@ export async function GET(
     const supabase = await supabaseAuthenticated();
     const { id } = await context.params;
 
-    console.log('Fetching pembelian with id:', id);
 
     // Validasi ID
     if (!id || id === 'undefined') {
@@ -46,7 +45,6 @@ export async function GET(
     }
 
     if (!pembelian) {
-      console.log('No data found for id:', id);
       return NextResponse.json(
         { error: 'Data tidak ditemukan' },
         { status: 404 }
@@ -84,7 +82,6 @@ export async function GET(
           console.error('Error fetching produk for detail:', detail.id, produkError);
         }
         
-        console.log('Produk data for detail', detail.id, ':', produk);
         
         return { ...detail, produk };
       })
@@ -116,7 +113,6 @@ export async function GET(
       console.warn('Could not compute totals for pembelian detail', e);
     }
 
-    console.log('Data found with', data.detail_pembelian?.length || 0, 'details');
     return NextResponse.json({ data });
   } catch (error: any) {
     console.error('Exception:', error);
@@ -157,7 +153,6 @@ async function checkPurchaseStockConsumed(purchaseId: number) {
 
       const currentStockLevel = parseFloat(currentStock?.stok?.toString() || '0');
 
-      console.log(`🔍 Purchase ${purchaseId} - ${currentStock?.nama_produk}: Purchased ${purchasedAmount}, Current stock: ${currentStockLevel}`);
 
       // If current stock is less than purchased amount, it was consumed
       // This accounts for sales, consignment, stock opname, or any consumption
@@ -165,16 +160,13 @@ async function checkPurchaseStockConsumed(purchaseId: number) {
 
       if (consumedForProduct > 0) {
         totalConsumedFromPurchase += consumedForProduct;
-        console.log(`  ❌ Consumed: ${consumedForProduct} units`);
       }
     }
 
     if (totalConsumedFromPurchase > 0) {
-      console.log(`❌ Purchase ${purchaseId} stock consumed: ${totalConsumedFromPurchase} units`);
       return totalConsumedFromPurchase;
     }
 
-    console.log(`✅ Purchase ${purchaseId} stock not consumed`);
     return 0;
 
   } catch (error) {
@@ -195,8 +187,6 @@ export async function PATCH(
     const { id } = await context.params;
     const body = await request.json();
 
-    console.log('PATCH request for id:', id);
-    console.log('Request body:', body);
 
     // Validasi ID
     if (!id || id === 'undefined') {
@@ -210,7 +200,6 @@ export async function PATCH(
     let updateData = { ...body };
     
     if (body.suplier_id) {
-      console.log('📝 Fetching cabang from supplier:', body.suplier_id);
       
       const { data: suplier, error: suplierError } = await supabase
         .from('suplier')
@@ -228,7 +217,6 @@ export async function PATCH(
 
       // ✅ Override cabang_id dengan cabang dari supplier
       updateData.cabang_id = suplier.cabang_id;
-      console.log('✅ Auto-set cabang_id from supplier:', suplier.cabang_id);
     }
 
     // Update data
@@ -260,7 +248,6 @@ export async function PATCH(
       throw error;
     }
 
-    console.log('✅ Data updated successfully');
     return NextResponse.json({
       success: true,
       message: 'Data berhasil diupdate',
@@ -295,7 +282,6 @@ export async function DELETE(
       );
     }
 
-    console.log('🗑️ DELETE PEMBELIAN ID:', id);
 
     // ============================================================
     // STEP 1: Get pembelian data
@@ -317,8 +303,6 @@ export async function DELETE(
       );
     }
 
-    console.log('📦 Pembelian:', pembelian.nota_supplier);
-    console.log('📊 Status Barang:', pembelian.status_barang);
 
     // ============================================================
     // STEP 2: Validate Stock Safety
@@ -336,11 +320,6 @@ export async function DELETE(
     // STEP 3: Restore Stock (Remove from inventory)
     // ============================================================
     const stockResult = await restoreStock('pembelian', parseInt(id));
-    
-    console.log(stockResult.restored 
-      ? `✅ Stock removed: ${stockResult.count} products`
-      : 'ℹ️ No stock to restore'
-    );
 
     // ============================================================
     // STEP 4: Restore Kas from Cicilan
@@ -353,7 +332,6 @@ export async function DELETE(
     const kasRestorations = [];
     
     if (cicilanList && cicilanList.length > 0) {
-      console.log('💰 Restoring payments to kas...');
       
       for (const cicilan of cicilanList) {
         // Use kas_id if available, otherwise try to find by rekening name
@@ -389,7 +367,6 @@ export async function DELETE(
               .update({ saldo: newSaldo })
               .eq('id', kasId);
 
-            console.log(`  💵 Kas ${kas.nama_kas}: ${kasSaldo} + ${jumlahKembali} = ${newSaldo}`);
 
             // Delete transaksi_kas
             await supabase
@@ -473,7 +450,6 @@ export async function DELETE(
       ? `Pembelian berhasil dihapus dan ${actions.join(', ')}`
       : 'Pembelian berhasil dihapus';
 
-    console.log(`✅ DELETE SUKSES! (${executionTime}ms)`);
 
     return NextResponse.json({
       success: true,

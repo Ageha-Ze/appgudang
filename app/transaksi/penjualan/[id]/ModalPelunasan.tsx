@@ -30,6 +30,9 @@ interface Penjualan {
   biaya_potong?: number;
   nilai_diskon?: number;
   uang_muka?: number;
+  pegawai?: {
+    cabang_id?: number;
+  };
 }
 
 export default function ModalPelunasan({
@@ -52,7 +55,6 @@ export default function ModalPelunasan({
 
   useEffect(() => {
     if (isOpen) {
-      fetchKas();
       fetchPenjualan();
       fetchCicilans();
       setFormData({
@@ -64,10 +66,20 @@ export default function ModalPelunasan({
     }
   }, [isOpen, penjualanId]);
 
+  // Fetch kas accounts when penjualan data is loaded
+  useEffect(() => {
+    if (penjualan) {
+      fetchKas();
+    }
+  }, [penjualan]);
+
   const fetchKas = async () => {
     try {
       setLoadingKas(true);
-      const res = await fetch('/api/master/kas');
+      // Get cabang_id from penjualan data to filter kas by branch
+      const cabangId = penjualan?.pegawai?.cabang_id;
+      const url = cabangId ? `/api/master/kas?cabang_id=${cabangId}` : '/api/master/kas';
+      const res = await fetch(url);
       const json = await res.json();
       setKasList(json.data || []);
     } catch (error) {
@@ -82,7 +94,6 @@ export default function ModalPelunasan({
     try {
       const res = await fetch(`/api/transaksi/penjualan/${penjualanId}`);
       const json = await res.json();
-      console.log('📊 Penjualan data:', json.data);
       setPenjualan(json.data);
     } catch (error) {
       console.error('Error fetching penjualan:', error);
@@ -93,7 +104,6 @@ export default function ModalPelunasan({
     try {
       const res = await fetch(`/api/transaksi/penjualan/${penjualanId}/cicilan`);
       const json = await res.json();
-      console.log('📋 Cicilans data:', json.data);
       setCicilans(json.data || []);
     } catch (error) {
       console.error('Error fetching cicilans:', error);
@@ -118,14 +128,6 @@ export default function ModalPelunasan({
     const uangMuka = Number(penjualan.uang_muka || 0);
     const sudahDibayar = uangMuka + totalCicilan;
 
-    console.log('💰 Calculate Info:', {
-      finalTotal,
-      uangMuka,
-      totalCicilan,
-      sudahDibayar,
-      sisaTagihan: tagihan
-    });
-
     return {
       totalPiutang: finalTotal,
       sudahDibayar,
@@ -142,13 +144,7 @@ export default function ModalPelunasan({
   const calculateJumlahPelunasan = () => {
     const { sisaTagihan } = calculateInfo();
     const jumlahPelunasan = Math.max(0, sisaTagihan - (formData.nilai_diskon || 0));
-    
-    console.log('🔢 Jumlah Pelunasan:', {
-      sisaTagihan,
-      nilaiDiskon: formData.nilai_diskon,
-      jumlahPelunasan
-    });
-    
+
     return jumlahPelunasan;
   };
 
@@ -162,14 +158,6 @@ export default function ModalPelunasan({
 
     const jumlahPelunasan = calculateJumlahPelunasan();
     const { sisaTagihan } = calculateInfo();
-
-    console.log('📝 Submit pelunasan:', {
-      kasId: formData.kas_id,
-      tanggalPelunasan: formData.tanggal_pelunasan,
-      nilaiDiskon: formData.nilai_diskon,
-      sisaTagihan,
-      jumlahPelunasan
-    });
 
     if (formData.nilai_diskon > sisaTagihan) {
       alert('Nilai diskon tidak boleh melebihi sisa tagihan');
@@ -202,7 +190,6 @@ export default function ModalPelunasan({
         nilai_diskon: formData.nilai_diskon,
       };
 
-      console.log('🚀 Sending payload:', payload);
 
       const res = await fetch(`/api/transaksi/penjualan/${penjualanId}/pelunasan`, {
         method: 'POST',
@@ -211,7 +198,6 @@ export default function ModalPelunasan({
       });
 
       const json = await res.json();
-      console.log('📥 Response:', json);
 
       if (res.ok) {
         alert(
@@ -255,7 +241,7 @@ export default function ModalPelunasan({
       )}
 
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-yellow-50 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-yellow-50 rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Pelunasan Penjualan</h2>
@@ -324,7 +310,7 @@ export default function ModalPelunasan({
                 <option value={0}>-- Pilih Rekening --</option>
                 {kasList.map((kas) => (
                   <option key={kas.id} value={kas.id}>
-                    {kas.nama_kas} {kas.no_rekening ? `(${kas.no_rekening})` : ''} - Saldo: Rp. {kas.saldo.toLocaleString('id-ID')}
+                    {kas.nama_kas} {kas.no_rekening ? `(${kas.no_rekening})` : ''} - Saldo: Rp. {Number(kas.saldo).toLocaleString('id-ID')}
                   </option>
                 ))}
               </select>

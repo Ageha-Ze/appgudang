@@ -93,7 +93,6 @@ export default function ModalEditDataPembelian({
 
     // ✅ Prevent double-submit
     if (loading) {
-      console.log('⚠️ Submit already in progress, ignoring...');
       return;
     }
 

@@ -113,7 +113,6 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    console.log('✅ Sample transformed data:', transformedData[0]);
 
     return NextResponse.json({
       success: true,

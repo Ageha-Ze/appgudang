@@ -61,6 +61,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validasi panjang username (sesuai database VARCHAR(100))
+    if (body.username.length > 100) {
+      return NextResponse.json(
+        { error: 'Username maksimal 100 karakter', success: false },
+        { status: 400 }
+      );
+    }
+
+    // Validasi panjang password
+    if (body.password.length > 255) {
+      return NextResponse.json(
+        { error: 'Password maksimal 255 karakter', success: false },
+        { status: 400 }
+      );
+    }
+
     // Validasi level
     if (!isValidUserLevel(body.level)) {
       return NextResponse.json(
@@ -116,6 +132,22 @@ export async function PUT(request: NextRequest) {
     if (!body.username) {
       return NextResponse.json(
         { error: 'Username harus diisi', success: false },
+        { status: 400 }
+      );
+    }
+
+    // Validasi panjang username (sesuai database VARCHAR(100))
+    if (body.username.length > 100) {
+      return NextResponse.json(
+        { error: 'Username maksimal 100 karakter', success: false },
+        { status: 400 }
+      );
+    }
+
+    // Validasi panjang password jika disediakan
+    if (body.password && body.password.length > 255) {
+      return NextResponse.json(
+        { error: 'Password maksimal 255 karakter', success: false },
         { status: 400 }
       );
     }

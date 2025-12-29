@@ -13,8 +13,6 @@ export async function POST(
     const { id } = await context.params;
     const body = await request.json();
 
-    console.log('🔥 PELUNASAN PEMBELIAN START - ID:', id);
-    console.log('📦 Body:', body);
 
     // Validasi input
     if (!body.rekening) {
@@ -63,12 +61,6 @@ export async function POST(
     const nilaiDiskon = parseFloat(body.nilai_diskon || '0');
     const sisaTagihan = sisaPiutang - nilaiDiskon;
 
-    console.log('📊 PERHITUNGAN:');
-    console.log('   Total:', totalReal);
-    console.log('   Sudah Dibayar:', sudahDibayar);
-    console.log('   Sisa Piutang:', sisaPiutang);
-    console.log('   Diskon:', nilaiDiskon);
-    console.log('   Sisa Tagihan (yang akan dibayar):', sisaTagihan);
 
     // Validasi
     if (nilaiDiskon > sisaPiutang) {
@@ -108,9 +100,6 @@ export async function POST(
       }, { status: 400 });
     }
 
-    console.log('🏦 Kas:', kas.nama_kas);
-    console.log('   Saldo Lama:', saldoKasLama);
-    console.log('   Akan Dibayar:', sisaTagihan);
 
     // 5. Update transaksi_pembelian
     const totalDibayarBaru = sudahDibayar + sisaTagihan;
@@ -124,7 +113,6 @@ export async function POST(
 
     if (updatePembelianError) throw updatePembelianError;
 
-    console.log('✅ Status pembelian updated: Lunas');
 
     // 6. Update hutang_pembelian (jika ada)
     const { data: hutang } = await supabase
@@ -146,13 +134,11 @@ export async function POST(
         })
         .eq('pembelian_id', id);
 
-      console.log('✅ Hutang pembelian updated');
     }
 
     // 7. ✅ KAS BERKURANG (bayar supplier)
     const saldoKasBaru = saldoKasLama - sisaTagihan;
     
-    console.log('🏦 Update Kas:', saldoKasLama, '-', sisaTagihan, '=', saldoKasBaru);
 
     const { error: updateKasError } = await supabase
       .from('kas')
@@ -161,7 +147,6 @@ export async function POST(
 
     if (updateKasError) throw updateKasError;
 
-    console.log('✅ Kas updated - saldo berkurang');
 
     // 8. Insert transaksi kas (DEBIT = uang keluar)
     const keteranganKas = `Pelunasan pembelian #${id}${nilaiDiskon > 0 ? ` (Diskon: Rp ${nilaiDiskon.toLocaleString('id-ID')})` : ''}`;
@@ -178,7 +163,6 @@ export async function POST(
 
     if (insertTransaksiKasError) throw insertTransaksiKasError;
 
-    console.log('✅ Transaksi kas inserted - Debit:', sisaTagihan);
 
     // 9. Insert cicilan history
     const keteranganCicilan = `Pelunasan${nilaiDiskon > 0 ? ` (Diskon: Rp ${nilaiDiskon.toLocaleString('id-ID')})` : ''}`;
@@ -196,8 +180,6 @@ export async function POST(
 
     if (insertCicilanError) throw insertCicilanError;
 
-    console.log('✅ Cicilan pembelian inserted');
-    console.log('🎉 PELUNASAN PEMBELIAN SUKSES!');
 
     return NextResponse.json({
       success: true,

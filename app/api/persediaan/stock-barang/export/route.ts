@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
     const start_date = searchParams.get('start_date');
     const end_date = searchParams.get('end_date');
 
-    console.log('📊 Exporting stock:', { type, cabang_id, produk_id, start_date, end_date });
 
     let workbook: XLSX.WorkBook;
     let filename: string;

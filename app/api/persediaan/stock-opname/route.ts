@@ -94,7 +94,6 @@ export async function POST(request: NextRequest) {
     const supabase = await supabaseAuthenticated();
     const body = await request.json();
 
-    console.log('Creating stock opname:', body);
 
     // Get current stock from produk table
     const { data: produk, error: produkError } = await supabase

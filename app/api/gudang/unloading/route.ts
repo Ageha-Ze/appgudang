@@ -278,7 +278,6 @@ export async function POST(request: NextRequest) {
           formula: `${item.jumlah} KG / ${produkJerigen.density_kg_per_liter} * 1000 = ${jumlahOutput.toFixed(2)} ML`
         };
         
-        console.log(`🔄 Conversion: ${conversionInfo.formula}`);
       } else if (produkJerigen.satuan === 'Ml' && produkKiloan.satuan === 'Kg') {
         // ML → KG conversion (reverse - rare case)
         if (!produkJerigen.density_kg_per_liter || produkJerigen.density_kg_per_liter <= 0) {
@@ -300,7 +299,6 @@ export async function POST(request: NextRequest) {
           formula: `${item.jumlah} ML / 1000 * ${produkJerigen.density_kg_per_liter} = ${jumlahOutput.toFixed(2)} KG`
         };
         
-        console.log(`🔄 Conversion: ${conversionInfo.formula}`);
       }
       // else: same unit, no conversion needed
 
@@ -345,7 +343,6 @@ export async function POST(request: NextRequest) {
         }, 0);
       }
 
-      console.log(`📊 Stock check - ${produkJerigen.nama_produk} di cabang ${cabangId}: ${branchStock} ${produkJerigen.satuan}`);
 
       // Validate against BRANCH stock
       const requestedAmount = parseFloat(item.jumlah);
@@ -449,7 +446,6 @@ export async function POST(request: NextRequest) {
 
           if (stockError1) throw stockError1;
 
-          console.log(`✅ Stock keluar: ${produkJerigen.nama_produk} -${jumlahInput} ${produkJerigen.satuan} (Cabang ${cabangId})`);
         }
 
         // 2. TAMBAH stock produk kiloan (use OUTPUT amount - converted)
@@ -492,7 +488,6 @@ export async function POST(request: NextRequest) {
 
           if (stockError2) throw stockError2;
 
-          console.log(`✅ Stock masuk: ${produkKiloan.nama_produk} +${jumlahOutput.toFixed(2)} ${produkKiloan.satuan} (Cabang ${cabangId})`);
         }
       }
     } catch (stockError: any) {
@@ -649,7 +644,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log(`🔄 Reversing stock for ${batchItems.length} unloading batch items...`);
 
     const reversalResults = [];
     
@@ -679,7 +673,6 @@ export async function DELETE(request: NextRequest) {
               original_kg: jumlahInput,
               density: produkJerigen.density_kg_per_liter
             };
-            console.log(`🔄 Reverse conversion: ${jumlahStored} ML → ${jumlahInput.toFixed(2)} KG (density ${produkJerigen.density_kg_per_liter})`);
           }
         } else if (produkJerigen.satuan === 'Ml' && produkKiloan.satuan === 'Kg') {
           // Reverse ML → KG conversion
@@ -691,7 +684,6 @@ export async function DELETE(request: NextRequest) {
               original_ml: jumlahInput,
               density: produkJerigen.density_kg_per_liter
             };
-            console.log(`🔄 Reverse conversion: ${jumlahStored} KG → ${jumlahInput.toFixed(2)} ML`);
           }
         }
 
@@ -708,7 +700,6 @@ export async function DELETE(request: NextRequest) {
           throw new Error(`Failed to restore jerigen stock: ${updateJerigenError.message}`);
         }
 
-        console.log(`✅ ${produkJerigen.nama_produk}: ${currentStokJerigen} + ${jumlahInput.toFixed(2)} = ${newStokJerigen.toFixed(2)} ${produkJerigen.satuan}`);
 
         // STEP 2: REVERSE KILOAN (Remove stock that was added - use STORED amount)
         const currentStokKiloan = parseFloat(produkKiloan.stok.toString());
@@ -731,7 +722,6 @@ export async function DELETE(request: NextRequest) {
           throw new Error(`Failed to reverse kiloan stock: ${updateKiloanError.message}`);
         }
 
-        console.log(`✅ ${produkKiloan.nama_produk}: ${currentStokKiloan} - ${jumlahStored.toFixed(2)} = ${newStokKiloan.toFixed(2)} ${produkKiloan.satuan}`);
 
         reversalResults.push({
           unloading_id: item.id,
@@ -800,7 +790,6 @@ export async function DELETE(request: NextRequest) {
       throw deleteError;
     }
 
-    console.log('🎯 Unloading deletion complete - all stock reversed successfully');
 
     return NextResponse.json({
       success: true,

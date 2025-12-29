@@ -51,15 +51,11 @@ export default function ModalTambahBarang({
   const fetchStock = async () => {
   try {
     setLoadingStock(true);
-    console.log('Fetching stock for cabangId:', cabangId);
     const url = `/api/persediaan/stock-barang?cabang_id=${cabangId}&mode=aggregated&limit=1000`;
-    console.log('Fetch URL:', url);
     const res = await fetch(url);
     const json = await res.json();
-    console.log('Full response:', res.status, json);  // Add this for status and full JSON
     if (json.data && Array.isArray(json.data)) {
       setStockList(json.data);
-      console.log('Stock list set:', json.data.length, 'items');
     } else {
       console.error('No data in response. Full JSON:', json);
       alert(`Error loading stock: ${json.error || 'Unknown error'}`);  // Temporary alert for visibility
@@ -76,7 +72,6 @@ export default function ModalTambahBarang({
 
   const handleProdukChange = (produkId: number) => {
     const stock = stockList.find((s) => s.produk_id === produkId);
-    console.log('Selected stock:', stock);
     setSelectedStock(stock || null);
     setFormData({
       ...formData,

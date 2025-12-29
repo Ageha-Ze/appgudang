@@ -14,7 +14,6 @@ export async function POST(
     const { id } = await context.params;
     const body = await request.json();
 
-    console.log('🔄 Processing billing:', id, body);
 
     // Validasi input
     if (!body.jenis_pembayaran) {
@@ -47,7 +46,6 @@ export async function POST(
 
     if (penjualanError) throw penjualanError;
 
-    console.log('📦 Penjualan data:', penjualan);
 
     // Calculate final total
     const biayaOngkir = parseFloat(body.biaya_ongkir) || 0;
@@ -56,7 +54,6 @@ export async function POST(
     const { subtotal } = calculatePenjualanTotals(penjualan as any);
     const finalTotal = subtotal + biayaOngkir + biayaPotong - diskon;
 
-    console.log('💰 Totals:', { subtotal, biayaOngkir, biayaPotong, diskon, finalTotal });
 
     // ✅ Update transaksi penjualan - PRESERVE cabang_id
     const updateData: any = {
@@ -80,7 +77,6 @@ export async function POST(
       updateData.jatuh_tempo = body.jatuh_tempo; // Simpan jatuh tempo
     }
 
-    console.log('📝 Update data:', updateData);
 
     const { error: updateError } = await supabase
       .from('transaksi_penjualan')
@@ -89,7 +85,6 @@ export async function POST(
 
     if (updateError) throw updateError;
 
-    console.log('✅ Penjualan updated');
 
     // ✅ JIKA TUNAI, UPDATE KAS
     if (body.jenis_pembayaran === 'tunai') {
@@ -127,7 +122,6 @@ export async function POST(
 
       if (transaksiKasError) throw transaksiKasError;
 
-      console.log(`💵 Kas ${kas.nama_kas}: ${kas.saldo} + ${finalTotal} = ${newSaldo}`);
     }
 
     // ✅ JIKA HUTANG, INSERT PIUTANG
@@ -156,7 +150,6 @@ export async function POST(
         if (piutangError) {
           console.error('❌ Error creating piutang:', piutangError);
         } else {
-          console.log('✅ Piutang created');
         }
       }
     }

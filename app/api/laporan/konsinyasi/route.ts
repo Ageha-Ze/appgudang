@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const cabangId = searchParams.get('cabang_id');
     const startDate = searchParams.get('start_date');
     const endDate = searchParams.get('end_date');
+    const status = searchParams.get('status'); // New: status filter
 
     if (!cabangId) {
       return NextResponse.json(
@@ -17,13 +18,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('[LAPORAN] Filters:', { cabangId, startDate, endDate });
+    console.log('[LAPORAN] Filters:', { cabangId, startDate, endDate, status });
 
-    // ✅ STRATEGY: Show all active consignments, but filter transactions by date
-    // This way we see the full picture of consignments with their filtered activity
-
-    // STEP 1: Get ALL active consignments for this branch
-    const { data: allConsignments, error: consignmentError } = await supabase
+    // ✅ STEP 1: Get consignments for this branch
+    let consignmentQuery = supabase
       .from('transaksi_konsinyasi')
       .select(`
         id,
@@ -56,8 +54,22 @@ export async function GET(request: NextRequest) {
         )
       `)
       .eq('cabang_id', cabangId)
-      .eq('status', 'Aktif')
       .order('tanggal_titip', { ascending: false });
+
+    // Apply status filter if provided (otherwise get ALL status)
+    if (status && status !== 'Semua') {
+      consignmentQuery = consignmentQuery.eq('status', status);
+    }
+
+    // Apply date filter to consignment date if provided
+    if (startDate) {
+      consignmentQuery = consignmentQuery.gte('tanggal_titip', startDate);
+    }
+    if (endDate) {
+      consignmentQuery = consignmentQuery.lte('tanggal_titip', endDate);
+    }
+
+    const { data: allConsignments, error: consignmentError } = await consignmentQuery;
 
     if (consignmentError) {
       console.error('[LAPORAN] Error fetching consignments:', consignmentError);
@@ -69,9 +81,38 @@ export async function GET(request: NextRequest) {
 
     console.log('[LAPORAN] Found consignments:', allConsignments?.length || 0);
 
+    // Check if no data found
+    if (!allConsignments || allConsignments.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          detail: [],
+          summary: {},
+          overall: {
+            total_transaksi: 0,
+            total_produk: 0,
+            total_nilai_titip: 0,
+            total_nilai_terjual: 0,
+            total_keuntungan: 0,
+            total_titip: 0,
+            total_terjual: 0,
+            total_sisa: 0,
+            total_kembali: 0,
+          },
+          filters: {
+            cabang_id: cabangId,
+            start_date: startDate,
+            end_date: endDate,
+            status: status,
+          },
+          message: 'Tidak ada transaksi konsinyasi pada periode yang dipilih'
+        }
+      });
+    }
+
     // Get all detail IDs
-    const allDetailIds = [];
-    for (const konsinyasi of allConsignments || []) {
+    const allDetailIds: number[] = [];
+    for (const konsinyasi of allConsignments) {
       for (const detail of konsinyasi.detail_konsinyasi || []) {
         allDetailIds.push(detail.id);
       }
@@ -79,33 +120,25 @@ export async function GET(request: NextRequest) {
 
     console.log('[LAPORAN] Total detail IDs:', allDetailIds.length);
 
-    // ✅ STEP 2: Fetch SALES with DATE FILTER
-    let salesQuery = supabase
-      .from('penjualan_konsinyasi')
-      .select('detail_konsinyasi_id, jumlah_terjual, total_penjualan, keuntungan_toko, tanggal_jual')
-      .in('detail_konsinyasi_id', allDetailIds);
-
-    // Apply date filter to sales
-    if (startDate) {
-      salesQuery = salesQuery.gte('tanggal_jual', startDate);
-    }
-    if (endDate) {
-      salesQuery = salesQuery.lte('tanggal_jual', endDate);
-    }
-
-    const { data: filteredSales, error: salesError } = await salesQuery;
+    // ✅ STEP 2: Fetch ALL SALES for these consignments (cumulative)
+    const { data: allSales, error: salesError } = allDetailIds.length > 0
+      ? await supabase
+          .from('penjualan_konsinyasi')
+          .select('detail_konsinyasi_id, jumlah_terjual, total_penjualan, keuntungan_toko, tanggal_jual')
+          .in('detail_konsinyasi_id', allDetailIds)
+      : { data: [], error: null };
 
     if (salesError) {
       console.error('[LAPORAN] Error fetching sales:', salesError);
     }
 
-    console.log('[LAPORAN] Filtered sales:', filteredSales?.length || 0);
+    console.log('[LAPORAN] All sales:', allSales?.length || 0);
 
     // Group sales by detail_konsinyasi_id
     const salesByDetail: { [key: number]: { total_terjual: number; total_nilai: number; total_keuntungan: number } } = {};
-    
-    if (filteredSales) {
-      filteredSales.forEach((sale: any) => {
+
+    if (allSales) {
+      allSales.forEach((sale: any) => {
         const detailId = sale.detail_konsinyasi_id;
         if (!salesByDetail[detailId]) {
           salesByDetail[detailId] = {
@@ -122,33 +155,25 @@ export async function GET(request: NextRequest) {
 
     console.log('[LAPORAN] Sales by detail:', Object.keys(salesByDetail).length, 'details with sales');
 
-    // ✅ STEP 3: Fetch RETURNS with DATE FILTER
-    let returQuery = supabase
-      .from('retur_konsinyasi')
-      .select('detail_konsinyasi_id, jumlah_retur, tanggal_retur')
-      .in('detail_konsinyasi_id', allDetailIds);
-
-    // Apply date filter to returns
-    if (startDate) {
-      returQuery = returQuery.gte('tanggal_retur', startDate);
-    }
-    if (endDate) {
-      returQuery = returQuery.lte('tanggal_retur', endDate);
-    }
-
-    const { data: filteredReturns, error: returError } = await returQuery;
+    // ✅ STEP 3: Fetch ALL RETURNS for these consignments (cumulative)
+    const { data: allReturns, error: returError } = allDetailIds.length > 0
+      ? await supabase
+          .from('retur_konsinyasi')
+          .select('detail_konsinyasi_id, jumlah_retur, tanggal_retur')
+          .in('detail_konsinyasi_id', allDetailIds)
+      : { data: [], error: null };
 
     if (returError) {
       console.error('[LAPORAN] Error fetching returns:', returError);
     }
 
-    console.log('[LAPORAN] Filtered returns:', filteredReturns?.length || 0);
+    console.log('[LAPORAN] All returns:', allReturns?.length || 0);
 
     // Group returns by detail_konsinyasi_id
     const returByDetail: { [key: number]: number } = {};
-    
-    if (filteredReturns) {
-      filteredReturns.forEach((retur: any) => {
+
+    if (allReturns) {
+      allReturns.forEach((retur: any) => {
         const detailId = retur.detail_konsinyasi_id;
         if (!returByDetail[detailId]) {
           returByDetail[detailId] = 0;
@@ -160,11 +185,10 @@ export async function GET(request: NextRequest) {
     console.log('[LAPORAN] Returns by detail:', Object.keys(returByDetail).length, 'details with returns');
 
     // ✅ STEP 4: Build report data
-    // ONLY show consignments that have activity in the date range
     const reportData = [];
     const productsInReport = new Set<number>();
 
-    for (const konsinyasi of allConsignments || []) {
+    for (const konsinyasi of allConsignments) {
       for (const detail of konsinyasi.detail_konsinyasi || []) {
         const produk = detail.produk as any;
         if (!produk) continue;
@@ -172,14 +196,6 @@ export async function GET(request: NextRequest) {
         const detailId = detail.id;
         const salesInfo = salesByDetail[detailId] || { total_terjual: 0, total_nilai: 0, total_keuntungan: 0 };
         const returInfo = returByDetail[detailId] || 0;
-
-        // KEY FILTER: Only show if there's activity in the period
-        const hasActivity = salesInfo.total_terjual > 0 || returInfo > 0;
-        
-        // Skip if no activity and date filter is active
-        if ((startDate || endDate) && !hasActivity) {
-          continue;
-        }
 
         productsInReport.add(produk.id);
 
@@ -191,14 +207,14 @@ export async function GET(request: NextRequest) {
         // Calculate average selling price from actual sales
         const rataHargaJualToko = actualJumlahTerjual > 0 ? totalNilaiTerjual / actualJumlahTerjual : 0;
 
-        // Calculate remaining: titip - terjual (in period) - kembali (in period)
-        // Note: jumlah_sisa in DB is cumulative, we calculate period-specific
-        const jumlahSisaPeriod = detail.jumlah_titip - actualJumlahTerjual - actualJumlahKembali;
+        // Calculate remaining: titip - terjual (cumulative) - kembali (cumulative)
+        const jumlahSisa = detail.jumlah_titip - actualJumlahTerjual - actualJumlahKembali;
 
         reportData.push({
           konsinyasi_id: konsinyasi.id,
           kode_konsinyasi: konsinyasi.kode_konsinyasi,
           tanggal_titip: konsinyasi.tanggal_titip,
+          status: konsinyasi.status,
           toko_kode: (konsinyasi.toko as any)?.kode_toko || '',
           toko_nama: (konsinyasi.toko as any)?.nama_toko || '',
           produk_id: produk.id,
@@ -210,10 +226,10 @@ export async function GET(request: NextRequest) {
           harga_jual_toko: detail.harga_jual_toko,
           rata_harga_jual_toko: rataHargaJualToko,
           jumlah_titip: detail.jumlah_titip,
-          jumlah_terjual: actualJumlahTerjual, // Sales in the filtered period
-          jumlah_sisa: Math.max(0, jumlahSisaPeriod),
-          jumlah_kembali: actualJumlahKembali, // Returns in the filtered period
-          keuntungan: actualKeuntungan, // Profit from sales in the filtered period
+          jumlah_terjual: actualJumlahTerjual, // Cumulative sales
+          jumlah_sisa: Math.max(0, jumlahSisa), // Remaining based on cumulative data
+          jumlah_kembali: actualJumlahKembali, // Cumulative returns
+          keuntungan: actualKeuntungan, // Cumulative profit
           subtotal_nilai_titip: detail.subtotal_nilai_titip,
           total_nilai_terjual: totalNilaiTerjual,
         });
@@ -291,6 +307,7 @@ export async function GET(request: NextRequest) {
           cabang_id: cabangId,
           start_date: startDate,
           end_date: endDate,
+          status: status,
         }
       }
     });

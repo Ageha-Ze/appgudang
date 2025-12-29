@@ -38,7 +38,6 @@ export default function PegawaiModal({ isOpen, onClose, pegawai, onSuccess }: Pe
       setError(null);
       
       try {
-        console.log('[Modal] Loading cabang and users...');
         
         // Fetch cabang and users using API routes
         const [cabangResponse, userResponse] = await Promise.all([
@@ -56,8 +55,6 @@ export default function PegawaiModal({ isOpen, onClose, pegawai, onSuccess }: Pe
           })
         ]);
         
-        console.log('[Modal] Cabang response status:', cabangResponse.status);
-        console.log('[Modal] Users response status:', userResponse.status);
         
         if (!cabangResponse.ok || !userResponse.ok) {
           throw new Error('Failed to load data');
@@ -66,8 +63,6 @@ export default function PegawaiModal({ isOpen, onClose, pegawai, onSuccess }: Pe
         const cabangData = await cabangResponse.json();
         const userData = await userResponse.json();
         
-        console.log('[Modal] Cabang data:', cabangData);
-        console.log('[Modal] Users data:', userData);
         
         if (cabangData.success) {
           setCabangList(cabangData.data || []);
@@ -158,13 +153,10 @@ export default function PegawaiModal({ isOpen, onClose, pegawai, onSuccess }: Pe
         user_id: formData.user_id ? parseInt(formData.user_id) : null,
       };
 
-      console.log('[Modal] Submitting data:', data);
-      console.log('[Modal] Is update?', !!pegawai);
 
       let response;
       if (pegawai) {
         // Update existing pegawai
-        console.log('[Modal] Updating pegawai ID:', pegawai.id);
         response = await fetch(`/api/master/pegawai?id=${pegawai.id}`, {
           method: 'PUT',
           headers: {
@@ -174,7 +166,6 @@ export default function PegawaiModal({ isOpen, onClose, pegawai, onSuccess }: Pe
         });
       } else {
         // Add new pegawai
-        console.log('[Modal] Creating new pegawai');
         response = await fetch('/api/master/pegawai', {
           method: 'POST',
           headers: {
@@ -184,7 +175,6 @@ export default function PegawaiModal({ isOpen, onClose, pegawai, onSuccess }: Pe
         });
       }
 
-      console.log('[Modal] Response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -193,7 +183,6 @@ export default function PegawaiModal({ isOpen, onClose, pegawai, onSuccess }: Pe
       }
 
       const result = await response.json();
-      console.log('[Modal] Result:', result);
 
       if (result.success) {
         onSuccess();

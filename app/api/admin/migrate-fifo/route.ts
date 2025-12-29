@@ -121,7 +121,6 @@ export async function POST(request: NextRequest) {
 
         const cabangId = pegawai?.cabang_id;
         if (!cabangId) {
-          console.log(`Skip penjualan #${penjualan.id}: No cabang_id`);
           continue;
         }
 

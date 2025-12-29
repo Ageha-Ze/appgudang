@@ -68,22 +68,15 @@ export default function ModalEditCicil({
         ? `/api/master/kas?cabang_id=${cabangId}`
         : '/api/master/kas';
 
-      console.log('Fetching rekenings from:', url);
-
       const res = await fetch(url);
       const json = await res.json();
 
-      console.log('Rekenings response:', json);
-
       if (json.data && json.data.length > 0) {
         setRekenings(json.data);
-        console.log('Rekenings set successfully:', json.data.length, 'items');
       } else {
-        console.warn('No rekenings data found');
         setRekenings([]);
       }
     } catch (error) {
-      console.error('Error fetching rekenings:', error);
       setRekenings([]);
     }
   };

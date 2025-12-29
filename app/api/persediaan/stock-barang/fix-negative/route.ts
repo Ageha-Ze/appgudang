@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { produk_id } = body; // Optional: fix specific product only
 
-    console.log('🔧 Starting stock fix process...');
 
     // Get all movements
     let movementsQuery = supabase
@@ -82,10 +81,6 @@ export async function POST(request: NextRequest) {
       const difference = Math.abs(data.calculated_stock - data.current_stock_in_db);
 
       if (difference > 0.01) { // Threshold for floating point comparison
-        console.log(`⚠️ Discrepancy found for ${data.nama_produk}:`);
-        console.log(`   DB Stock: ${data.current_stock_in_db}`);
-        console.log(`   Calculated: ${data.calculated_stock}`);
-        console.log(`   Difference: ${difference}`);
 
         // Update stock in produk table
         const { error: updateError } = await supabase
@@ -101,7 +96,6 @@ export async function POST(request: NextRequest) {
             error: updateError.message,
           });
         } else {
-          console.log(`✅ Fixed ${data.nama_produk}`);
           fixed.push({
             produk_id: produkId,
             nama_produk: data.nama_produk,
@@ -125,7 +119,6 @@ export async function POST(request: NextRequest) {
       ).length,
     };
 
-    console.log('📊 Fix Summary:', summary);
 
     return NextResponse.json({
       success: true,

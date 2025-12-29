@@ -13,7 +13,6 @@ export async function POST(
     const body = await request.json();
     const supabase = await supabaseAuthenticated();
 
-    console.log('🔄 Processing billing for pembelian:', pembelian_id);
 
     // ✅ Check if already billed (PREVENT DUPLICATE)
     const { data: checkData, error: checkError } = await supabase
@@ -25,7 +24,6 @@ export async function POST(
     if (checkError) throw checkError;
 
     if (checkData.status === 'billed') {
-      console.log('⚠️ Pembelian already billed, skipping...');
       return NextResponse.json({
         error: 'Pembelian sudah di-billing sebelumnya'
       }, { status: 400 });
@@ -96,7 +94,6 @@ export async function POST(
 
     if (updateError) throw updateError;
 
-    console.log('✅ Pembelian status updated to completed'); // ← Update log message
 
     // ✅ Handle DP/Uang Muka (BAYAR = KURANGI KAS)
     if (uang_muka > 0) {
@@ -172,11 +169,9 @@ export async function POST(
                 keterangan: `DP Pembelian (Nota: ${pembelian.nota_supplier})`
               });
 
-            console.log(`✅ Kas updated: ${kasSaldo} - ${uang_muka} = ${newSaldo}`);
           }
         }
       } else {
-        console.log('⚠️ Uang muka already recorded, skipping');
       }
     }
 
@@ -203,7 +198,6 @@ export async function POST(
         })
         .eq('pembelian_id', parseInt(pembelian_id));
       
-      console.log('✅ Hutang updated');
     } else {
       await supabase
         .from('hutang_pembelian')
@@ -216,10 +210,8 @@ export async function POST(
           status: sisa <= 0 ? 'Lunas' : 'Belum Lunas'
         });
       
-      console.log('✅ Hutang created');
     }
 
-    console.log('✅ Billing completed');
 
     // Return updated data
     const { data: updatedPembelian } = await supabase

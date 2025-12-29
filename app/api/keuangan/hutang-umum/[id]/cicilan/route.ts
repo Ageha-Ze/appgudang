@@ -42,7 +42,6 @@ export async function POST(
 
     const { tanggal_cicilan, jumlah_cicilan, kas_id, keterangan, is_pelunasan } = body;
 
-    console.log('📥 Request pelunasan:', { hutangId: id, jumlah_cicilan, kas_id, is_pelunasan });
 
     // Get hutang info
     const { data: hutang, error: hutangError } = await supabase
@@ -55,7 +54,6 @@ export async function POST(
       return NextResponse.json({ error: 'Hutang tidak ditemukan' }, { status: 404 });
     }
 
-    console.log('💰 Data hutang:', hutang);
 
     let jumlahBayar = Number(jumlah_cicilan);
 
@@ -100,7 +98,6 @@ export async function POST(
 
     if (updateKasError) throw updateKasError;
 
-    console.log(`✅ Kas updated: ${kas.nama_kas} ${kasSaldo} -> ${newKasSaldo}`);
 
     // Insert cicilan
     const { error: cicilanError } = await supabase
@@ -119,7 +116,6 @@ export async function POST(
     const dibayarBaru = Number(hutang.dibayar) + jumlahBayar;
     const sisaBaru = Number(hutang.nominal_total) - dibayarBaru;
 
-    console.log(`📊 Update hutang: dibayar ${hutang.dibayar} -> ${dibayarBaru}, sisa ${hutang.sisa} -> ${sisaBaru}`);
 
     const { error: updateError } = await supabase
       .from('hutang_umum')
@@ -146,7 +142,6 @@ export async function POST(
 
     if (kasTransaksiError) throw kasTransaksiError;
 
-    console.log('✅ Pelunasan berhasil');
 
     return NextResponse.json({
       success: true,
@@ -170,7 +165,6 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Parameter tidak lengkap' }, { status: 400 });
     }
 
-    console.log('🗑️ Deleting cicilan:', { cicilanId, hutangId });
 
     // 1. Get cicilan info
     const { data: cicilan, error: cicilanError } = await supabase
@@ -185,7 +179,6 @@ export async function DELETE(request: NextRequest) {
 
     const jumlahCicilan = parseFloat(cicilan.jumlah_cicilan.toString());
 
-    console.log('💰 Cicilan data:', cicilan);
 
     // 2. Get kas info and restore saldo (kembalikan uang ke kas)
     const { data: kas, error: kasError } = await supabase
@@ -207,7 +200,6 @@ export async function DELETE(request: NextRequest) {
       if (updateKasError) {
         console.warn('⚠️ Could not update kas:', updateKasError);
       } else {
-        console.log(`✅ Kas restored: ${kas.nama_kas} ${kasSaldo} -> ${newSaldo}`);
       }
 
       // Insert transaksi kas (kredit = uang masuk kembali)
@@ -239,7 +231,6 @@ export async function DELETE(request: NextRequest) {
 
     if (deleteError) throw deleteError;
 
-    console.log('✅ Cicilan deleted');
 
     // 5. Get hutang info untuk recalculate
     const { data: hutang, error: hutangError } = await supabase
@@ -278,7 +269,6 @@ export async function DELETE(request: NextRequest) {
       newStatus = 'Belum Lunas';
     }
 
-    console.log(`📊 Recalculate hutang: total=${nominalTotal}, dibayar=${totalDibayar}, sisa=${sisaBaru}, status=${newStatus}`);
 
     // 7. Update hutang dengan data yang benar
     const { error: updateHutangError } = await supabase
@@ -293,7 +283,6 @@ export async function DELETE(request: NextRequest) {
 
     if (updateHutangError) throw updateHutangError;
 
-    console.log('✅ Hutang updated with correct status');
 
     return NextResponse.json({
       success: true,

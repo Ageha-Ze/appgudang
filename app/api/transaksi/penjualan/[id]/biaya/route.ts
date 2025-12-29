@@ -12,7 +12,6 @@ export async function PATCH(
     const { id } = await context.params;
     const body = await request.json();
 
-    console.log('🔧 Update biaya:', id, body);
 
     // Get existing penjualan dengan data lengkap
     const { data: existingPenjualan } = await supabase
@@ -48,15 +47,6 @@ export async function PATCH(
     const nilaiDiskonLama = Number(existingPenjualan.nilai_diskon || 0);
     const totalLama = subtotal + biayaOngkirLama + biayaKemasLama - nilaiDiskonLama;
 
-    console.log('💰 Totals:', { 
-      subtotal, 
-      totalLama,
-      totalBaru,
-      biayaOngkir, 
-      biayaKemas, 
-      nilaiDiskon 
-    });
-
     // 🔥 CEK APAKAH ADA PERUBAHAN BIAYA
     const adaPerubahanBiaya = (
       biayaOngkir !== biayaOngkirLama ||
@@ -71,18 +61,15 @@ export async function PATCH(
     let dibayarBaru = parseFloat(existingPenjualan.dibayar || '0');
     
     if (isLunas && adaPerubahanBiaya && totalBaru !== totalLama) {
-      console.log('⚠️ Status Lunas berubah karena ada perubahan biaya!');
       
       // Jika total berubah dan sebelumnya lunas, cek kembali status
       const sisaTagihan = totalBaru - dibayarBaru;
       
       if (sisaTagihan > 0) {
         statusPembayaranBaru = 'Belum Lunas';
-        console.log(`📊 Status berubah: Lunas → Belum Lunas (Sisa: Rp. ${sisaTagihan.toLocaleString('id-ID')})`);
       } else if (sisaTagihan < 0) {
         // Jika dibayar lebih dari total baru, status tetap Lunas
         statusPembayaranBaru = 'Lunas';
-        console.log('✅ Total berkurang tapi tetap Lunas (sudah lebih bayar)');
       }
     }
 
@@ -103,7 +90,6 @@ export async function PATCH(
 
     if (updateError) throw updateError;
 
-    console.log('✅ Biaya updated');
 
     // 2. Update piutang jika ada
     const { data: piutang } = await supabase
@@ -123,7 +109,6 @@ export async function PATCH(
         })
         .eq('id', piutang.id);
 
-      console.log('✅ Piutang updated');
     }
 
     // 3. Jika ada uang muka, proses uang muka
@@ -134,7 +119,6 @@ export async function PATCH(
       const sisaDenganUM = totalBaru - dibayarDenganUM;
       const statusDenganUM = sisaDenganUM <= 0 ? 'Lunas' : 'Cicil';
 
-      console.log('💵 Uang Muka:', { uangMuka, dibayarSebelumnya, dibayarDenganUM, sisaDenganUM, statusDenganUM });
 
       // Validasi uang muka tidak melebihi total
       if (dibayarDenganUM > totalBaru) {
@@ -153,7 +137,6 @@ export async function PATCH(
         })
         .eq('id', id);
 
-      console.log('✅ Dibayar updated');
 
       // Get kas data
       const { data: kas } = await supabase
@@ -172,7 +155,6 @@ export async function PATCH(
           .update({ saldo: saldoKasBaru })
           .eq('id', body.kas_id);
 
-        console.log(`🦄 Kas ${kas.nama_kas}: ${saldoKasLama} + ${uangMuka} = ${saldoKasBaru}`);
       }
 
       // Insert ke cicilan_penjualan
@@ -186,7 +168,6 @@ export async function PATCH(
           keterangan: 'Uang Muka',
         });
 
-      console.log('✅ Cicilan uang muka created');
 
       // Insert ke transaksi_kas (kredit = uang masuk)
       await supabase
@@ -199,7 +180,6 @@ export async function PATCH(
           keterangan: `Uang muka penjualan #${id}`,
         });
 
-      console.log('✅ Transaksi kas created');
 
       // Update piutang jika ada
       if (piutang) {
@@ -213,7 +193,6 @@ export async function PATCH(
           })
           .eq('id', piutang.id);
 
-        console.log('✅ Piutang updated with uang muka');
       }
     }
 
@@ -232,7 +211,6 @@ export async function PATCH(
       return NextResponse.json({ message: 'Biaya berhasil diupdate' });
     }
 
-    console.log('✅ BIAYA BERHASIL DIUPDATE!');
 
     let message = 'Biaya berhasil diupdate';
     if (isLunas && adaPerubahanBiaya && statusPembayaranBaru === 'Belum Lunas') {

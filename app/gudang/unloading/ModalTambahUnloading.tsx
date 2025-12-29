@@ -153,7 +153,6 @@ export default function ModalTambahUnloading({
       }
 
       setProdukJerigenList(jerigenWithBranchStock);
-      console.log(`✅ Loaded ${jerigenWithBranchStock.length} jerigen products with stock in cabang ${cabangId}`);
       
     } catch (error) {
       console.error('Error fetching produk jerigen:', error);
@@ -349,7 +348,6 @@ export default function ModalTambahUnloading({
       jumlahOutput = (jumlahInput / density) * 1000;
       conversionType = 'KG_TO_ML';
       
-      console.log(`🔄 Conversion Preview: ${jumlahInput} KG (density ${density}) → ${jumlahOutput.toFixed(2)} ML`);
     } else if (produkJerigen.satuan === 'Ml' && produkKiloan.satuan === 'Kg') {
       // ML → KG conversion
       if (!produkJerigen.density_kg_per_liter || produkJerigen.density_kg_per_liter <= 0) {
@@ -360,7 +358,6 @@ export default function ModalTambahUnloading({
       jumlahOutput = (jumlahInput / 1000) * density;
       conversionType = 'ML_TO_KG';
       
-      console.log(`🔄 Conversion Preview: ${jumlahInput} ML → ${jumlahOutput.toFixed(2)} KG (density ${density})`);
     }
 
     const newItem: DetailItem = {

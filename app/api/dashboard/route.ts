@@ -97,7 +97,6 @@ export async function GET(request: NextRequest) {
     // Step 3: Hitung total HPP berdasarkan detail penjualan
     let totalHPP = 0;
 
-    console.log('🔍 Debug - Penjualan bulan ini:', penjualanIds.length, 'transaksi');
 
     if (penjualanIds.length > 0) {
       const { data: hppData, error: hppError } = await supabase
@@ -110,7 +109,6 @@ export async function GET(request: NextRequest) {
         throw hppError;
       }
 
-      console.log('✅ Detail penjualan found:', hppData.length, 'items');
 
       totalHPP = hppData.reduce((sum, item) => {
         const hpp = item.hpp || 0;
@@ -118,9 +116,7 @@ export async function GET(request: NextRequest) {
         return sum + (hpp * jumlah);
       }, 0);
 
-      console.log('💰 Total HPP:', totalHPP);
     } else {
-      console.log('⚠️  Tidak ada penjualan bulan ini untuk cabang', cabangId);
     }
 
     // Sales Data: Monthly sales for selected period via join

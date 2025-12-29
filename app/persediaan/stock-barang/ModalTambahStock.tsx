@@ -161,7 +161,6 @@ export default function ModalTambahStock({
         keterangan: formData.keterangan || `Stock tambah manual`,
       };
 
-      console.log('📤 Sending request:', body);
 
       const res = await fetch('/api/persediaan/stock-barang', {
         method: 'POST',

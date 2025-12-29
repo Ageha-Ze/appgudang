@@ -29,7 +29,6 @@ export async function GET(request: NextRequest) {
     }
 
     // ✅ Calculate real-time stock from stock_barang table
-    console.log('🔍 Calculating real-time stock for', produkList?.length || 0, 'products...');
     
     const produkWithRealStock = await Promise.all(
       (produkList || []).map(async (produk) => {
@@ -64,14 +63,9 @@ export async function GET(request: NextRequest) {
 
             stokAkhir = total_masuk - total_keluar;
 
-            console.log(`📦 ${produk.nama_produk}:`);
-            console.log(`   Masuk: ${total_masuk}`);
-            console.log(`   Keluar: ${total_keluar}`);
-            console.log(`   Stock Akhir: ${stokAkhir}`);
           } else {
             // No stock movements, use DB stock as fallback
             stokAkhir = parseFloat(produk.stok?.toString() || '0');
-            console.log(`⚠️ ${produk.nama_produk}: No movements, using DB stock = ${stokAkhir}`);
           }
 
           return {
@@ -89,7 +83,6 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    console.log('✅ Stock calculation completed!');
 
     return NextResponse.json({
       success: true,

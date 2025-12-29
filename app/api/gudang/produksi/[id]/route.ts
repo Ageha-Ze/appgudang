@@ -1,69 +1,63 @@
-     // app/api/gudang/produksi/[id]/route.ts
+// app/api/gudang/produksi/[id]/route.ts
+'use server';
 
-     'use server';
+import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAuthenticated } from '@/lib/supabaseServer';
+import { validateStockDeletion, restoreStock, logAuditTrail } from '@/lib/helpers/stockSafety';
 
-     import { NextRequest, NextResponse } from 'next/server';
-     import { supabaseAuthenticated } from '@/lib/supabaseServer';
-    import { validateStockDeletion, restoreStock, logAuditTrail } from '@/lib/helpers/stockSafety';
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const supabase = await supabaseAuthenticated();
+    const { id } = await params;
 
-     export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-       try {
-         const supabase = await supabaseAuthenticated();
-         const { id } = await params;
+    // Query directly instead of using RPC
+    const { data: produksi, error: produksiError } = await supabase
+      .from('transaksi_produksi')
+      .select(`
+        *,
+        produk:produk_id (
+          id,
+          nama_produk,
+          kode_produk
+        ),
+        pegawai:pegawai_id (
+          id,
+          nama
+        ),
+        cabang:cabang_id (
+          id,
+          nama_cabang,
+          kode_cabang
+        ),
+        detail_produksi (
+          *,
+          item:produk (
+            id,
+            nama_produk,
+            kode_produk,
+            satuan
+          )
+        )
+      `)
+      .eq('id', parseInt(id))
+      .single();
 
-         console.log('Fetching produksi detail for ID:', id);
+    if (produksiError) {
+      console.error('Error fetching produksi:', produksiError);
+      throw produksiError;
+    }
 
-         // Query directly instead of using RPC
-         const { data: produksi, error: produksiError } = await supabase
-           .from('transaksi_produksi')
-           .select(`
-             *,
-             produk:produk_id (
-               id,
-               nama_produk,
-               kode_produk
-             ),
-             pegawai:pegawai_id (
-               id,
-               nama
-             ),
-             cabang:cabang_id (
-               id,
-               nama_cabang,
-               kode_cabang
-             ),
-             detail_produksi (
-               *,
-               item:produk (
-                 id,
-                 nama_produk,
-                 kode_produk,
-                 satuan
-               )
-             )
-           `)
-           .eq('id', parseInt(id))
-           .single();
+    if (!produksi) {
+      throw new Error('Data tidak ditemukan');
+    }
 
-         if (produksiError) {
-           console.error('Error fetching produksi:', produksiError);
-           throw produksiError;
-         }
-
-         if (!produksi) {
-           throw new Error('Data tidak ditemukan');
-         }
-
-         console.log('Fetched produksi data:', JSON.stringify(produksi, null, 2));
-
-         return NextResponse.json({ data: produksi });
-       } catch (error: any) {
-         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-         console.error('Error fetching produksi detail:', errorMessage);
-         return NextResponse.json({ error: errorMessage }, { status: 500 });
-       }
-     }
-
+    return NextResponse.json({ data: produksi });
+  } catch (error: any) {
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    console.error('Error fetching produksi detail:', errorMessage);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
+  }
+}
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -132,10 +126,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-
-
 export async function DELETE(
-  request: NextRequest, 
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const startTime = Date.now();
@@ -151,7 +143,6 @@ export async function DELETE(
       // ============================================================
       // DETAIL ITEM DELETION: Return allocated material to stock
       // ============================================================
-      console.log('🗑️ Deleting production detail:', detailId);
 
       const { data: detail, error: getError } = await supabase
         .from('detail_produksi')
@@ -193,8 +184,6 @@ export async function DELETE(
 
       if (deleteError) throw deleteError;
 
-      console.log(`✅ Detail deleted and stock restored: +${detail.jumlah} to item ${detail.item_id}`);
-
       return NextResponse.json({
         success: true,
         message: 'Detail item deleted and stock restored'
@@ -203,7 +192,6 @@ export async function DELETE(
       // ============================================================
       // PRODUCTION DELETION - WITH STOCK SAFETY
       // ============================================================
-      console.log('🗑️ DELETE PRODUKSI ID:', produksiId);
 
       // STEP 1: Get produksi data
       const { data: produksi, error: fetchError } = await supabase
@@ -222,11 +210,9 @@ export async function DELETE(
         );
       }
 
-      console.log('📦 Produksi:', produksi);
-
       // STEP 2: Validate Stock Safety
       const stockValidation = await validateStockDeletion('produksi', produksiId);
-      
+
       if (!stockValidation.safe) {
         return NextResponse.json({
           success: false,
@@ -236,11 +222,6 @@ export async function DELETE(
 
       // STEP 3: Restore Stock (using helper)
       const stockResult = await restoreStock('produksi', produksiId);
-      
-      console.log(stockResult.restored 
-        ? `✅ Stock restored: ${stockResult.count} records`
-        : 'ℹ️ No stock to restore'
-      );
 
       // STEP 4: Log Audit Trail
       await logAuditTrail(
@@ -267,11 +248,9 @@ export async function DELETE(
       // STEP 7: Build Response
       const executionTime = Date.now() - startTime;
 
-      console.log(`✅ DELETE SUKSES! (${executionTime}ms)`);
-
       return NextResponse.json({
         success: true,
-        message: stockResult.restored 
+        message: stockResult.restored
           ? `Produksi berhasil dihapus dan stock dikembalikan (${stockResult.count} items)`
           : 'Produksi berhasil dihapus',
         deleted: {
@@ -289,10 +268,10 @@ export async function DELETE(
   } catch (error: any) {
     console.error('❌ ERROR in production DELETE:', error);
     return NextResponse.json(
-      { 
+      {
         success: false,
-        error: error.message 
-      }, 
+        error: error.message
+      },
       { status: 500 }
     );
   }

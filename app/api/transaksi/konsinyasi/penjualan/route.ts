@@ -7,8 +7,6 @@ export async function POST(request: NextRequest) {
     const supabase = await supabaseAuthenticated();
     const body = await request.json();
 
-    console.log('📦 Creating penjualan konsinyasi:', body);
-
     // ✅ Validasi input
     if (!body.detail_konsinyasi_id || !body.jumlah_terjual || !body.tanggal_jual || !body.kas_id) {
       return NextResponse.json(
@@ -54,12 +52,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('📋 Detail konsinyasi:', {
-      produk: detail.produk?.nama_produk,
-      jumlah_sisa: detail.jumlah_sisa,
-      status_konsinyasi: detail.konsinyasi?.status
-    });
-
     // ✅ Validasi: Cek status konsinyasi
     if (detail.konsinyasi?.status !== 'Aktif') {
       return NextResponse.json(
@@ -92,22 +84,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('💰 Kas:', kas.nama_kas, 'Saldo:', kas.saldo);
-
     // ✅ Calculate nilai jual
     const hargaJualToko = parseFloat(detail.harga_jual_toko?.toString() || '0');
     const hargaKonsinyasi = parseFloat(detail.harga_konsinyasi?.toString() || '0');
     const totalNilaiKita = jumlah * hargaKonsinyasi;
     const totalPenjualan = jumlah * hargaJualToko;
     const keuntunganToko = totalPenjualan - totalNilaiKita;
-
-    console.log('💰 Calculations:', {
-      hargaJualToko,
-      hargaKonsinyasi,
-      totalNilaiKita,
-      totalPenjualan,
-      keuntunganToko
-    });
 
     // ✅ Insert penjualan konsinyasi
     const { data: penjualan, error: penjualanError } = await supabase
@@ -133,14 +115,10 @@ export async function POST(request: NextRequest) {
       throw penjualanError;
     }
 
-    console.log('✅ Penjualan inserted:', penjualan.id);
-
     // ✅ Update detail konsinyasi
     const newJumlahTerjual = detail.jumlah_terjual + jumlah;
     const newJumlahSisa = detail.jumlah_sisa - jumlah;
     const newKeuntunganToko = detail.keuntungan_toko + keuntunganToko;
-
-    console.log(`📊 Updating detail: terjual ${detail.jumlah_terjual} → ${newJumlahTerjual}, sisa ${detail.jumlah_sisa} → ${newJumlahSisa}`);
 
     const { error: updateDetailError } = await supabase
       .from('detail_konsinyasi')
@@ -163,8 +141,6 @@ export async function POST(request: NextRequest) {
 
     // ✅ Update kas (tambah pemasukan) - menggunakan total_nilai_kita karena kita dapat kembali harga konsinyasi
     const newSaldo = parseFloat(kas.saldo.toString()) + totalNilaiKita;
-
-    console.log(`💵 Kas ${kas.nama_kas}: ${kas.saldo} + ${totalNilaiKita} = ${newSaldo}`);
 
     const { error: updateKasError } = await supabase
       .from('kas')
@@ -204,15 +180,11 @@ export async function POST(request: NextRequest) {
     if (transaksiKasError) {
       console.error('⚠️ Warning: Failed to insert transaksi_kas:', transaksiKasError);
       // Don't rollback, kas sudah berubah dan itu yang penting
-    } else {
-      console.log('  ✅ Kas transaction recorded');
     }
 
     // ✅ Kurangi stock produk (karena barang sudah terjual)
     const currentStok = parseFloat(detail.produk?.stok?.toString() || '0');
     const newStok = currentStok - jumlah;
-
-    console.log(`📦 Stock ${detail.produk?.nama_produk}: ${currentStok} - ${jumlah} = ${newStok}`);
 
     const { error: updateStockError } = await supabase
       .from('produk')
@@ -262,8 +234,6 @@ export async function POST(request: NextRequest) {
     if (stockBarangError) {
       console.error('⚠️ Warning: Failed to insert stock_barang:', stockBarangError);
       // Don't rollback, stock sudah dikurangi dan itu yang penting
-    } else {
-      console.log('  ✅ Stock movement recorded');
     }
 
     return NextResponse.json({

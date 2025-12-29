@@ -6,16 +6,12 @@ export async function GET() {
     const cookieStore = await cookies();
     const session = cookieStore.get('user_session');
     
-    console.log('=== SESSION CHECK ===');
-    console.log('Cookie exists:', !!session);
     
     if (!session) {
-      console.log('No session cookie found');
       return NextResponse.json({ success: false, user: null });
     }
     
     const user = JSON.parse(session.value);
-    console.log('User from cookie:', user);
     
     return NextResponse.json({ 
       success: true, 

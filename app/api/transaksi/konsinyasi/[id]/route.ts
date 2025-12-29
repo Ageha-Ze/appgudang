@@ -61,7 +61,6 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    console.log('🔄 Updating konsinyasi status:', { id, new_status: body.status });
 
     // ✅ Validasi input
     if (!body.status) {
@@ -114,7 +113,6 @@ export async function PUT(
     const oldStatus = konsinyasi.status;
     const newStatus = body.status;
 
-    console.log('📊 Current status:', oldStatus, '→', newStatus);
 
     // ✅ Validasi: Tidak boleh mengubah status yang sudah final
     if (oldStatus === 'Selesai') {
@@ -133,7 +131,6 @@ export async function PUT(
 
     // ✅ Business Logic: Handle status change
     if (newStatus === 'Selesai') {
-      console.log('📦 Finishing konsinyasi...');
 
       // 🚫 REMOVED: Previously moved sisa to kembali automatically
       // Now: Let remaining items stay as sisa so user can handle them explicitly
@@ -146,21 +143,15 @@ export async function PUT(
 
         if (jumlahSisa > 0) {
           hasRemainingItems = true;
-          console.log(`  ℹ️ Item still pending: ${detail.produk?.nama_produk}, sisa: ${jumlahSisa}`);
-          console.log(`    User can now use 'Retur' with specific type (Normal/Hilang/Rusak/Gratis)`);
         }
       }
 
       if (hasRemainingItems) {
-        console.log('⚠️ Warning: Konsinyasi completed but items still pending as "sisa"');
-        console.log('   Use Retur functionality to categorize these remaining items');
       }
 
-      console.log('✅ Konsinyasi marked as finished (remaining items stay pending for categorization)');
     }
 
     if (newStatus === 'Batal') {
-      console.log('🚫 Canceling konsinyasi...');
 
       // ⚠️ IMPORTANT: Cek dulu apakah sudah ada penjualan
       const { data: penjualan } = await supabase
@@ -180,7 +171,6 @@ export async function PUT(
 
       // Jika belum ada penjualan, stock tidak perlu dikembalikan
       // Karena saat kirim konsinyasi, stock TIDAK dikurangi
-      console.log('ℹ️ No sales yet, stock remains unchanged (nothing to return)');
 
       // Update detail konsinyasi: tandai semua barang sebagai kembali
       const details = konsinyasi.detail_konsinyasi || [];
@@ -202,7 +192,6 @@ export async function PUT(
         }
       }
 
-      console.log('✅ Konsinyasi marked as canceled (no stock changes)');
     }
 
     // ✅ Update status konsinyasi
@@ -226,7 +215,6 @@ export async function PUT(
       throw error;
     }
 
-    console.log('✅ Status updated successfully');
 
     return NextResponse.json({
       success: true,

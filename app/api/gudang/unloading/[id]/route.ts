@@ -46,7 +46,6 @@ export async function GET(
       );
     }
 
-    console.log('Fetching unloading detail for ID:', parsedId);
 
     // Get detail unloading by ID
     const { data: mainItem, error: mainError } = await supabase
@@ -141,7 +140,6 @@ export async function GET(
       throw error;
     }
 
-    console.log('Raw items from DB:', items);
 
     if (!items || items.length === 0) {
       return NextResponse.json(
@@ -225,7 +223,6 @@ export async function GET(
       jumlah_item: items.length
     };
 
-    console.log('Transformed response:', response);
 
     return NextResponse.json({ 
       success: true,

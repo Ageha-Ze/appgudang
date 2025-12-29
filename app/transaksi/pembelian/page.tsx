@@ -163,7 +163,6 @@ export default function PembelianPage() {
       const json = await res.json();
 
       if (json.success) {
-        console.log('✅ Delete successful:', json);
         // Show success toast
         customToast.success('Success!');
 

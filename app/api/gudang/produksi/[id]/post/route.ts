@@ -13,7 +13,6 @@ export async function POST(
     const supabase = await supabaseAuthenticated();
     const produksiId = parseInt(id);
 
-    console.log('🔄 Posting produksi ID:', produksiId);
 
     // ============================================================
     // STEP 1: Get produksi with details
@@ -36,7 +35,6 @@ export async function POST(
     if (getProduksiError) throw getProduksiError;
     if (!produksiData) throw new Error('Produksi tidak ditemukan');
 
-    console.log('📦 Data produksi:', produksiData);
 
     // Check if already posted
     if (produksiData.status === 'posted') {
@@ -62,7 +60,6 @@ export async function POST(
       .eq('produksi_id', produksiId);
 
     if (existingStockRecords && existingStockRecords.length > 0) {
-      console.log('⚠️ Stock already recorded, skipping...');
       return NextResponse.json({
         error: 'Produksi sudah diposting sebelumnya. Stock sudah tercatat.'
       }, { status: 400 });
@@ -71,7 +68,6 @@ export async function POST(
     // ============================================================
     // STEP 3: Validasi stock SEMUA bahan baku DULU
     // ============================================================
-    console.log('🔍 Validating stock for', details.length, 'items...');
     
     for (const detail of details) {
       if (!detail.item_id) continue;
@@ -89,7 +85,6 @@ export async function POST(
       const currentStok = parseFloat(item.stok?.toString() || '0');
       const needed = parseFloat(detail.jumlah?.toString() || '0');
 
-      console.log(`  - ${item.nama_produk}: stock=${currentStok}, needed=${needed}`);
 
       // 🔒 STRICT STOCK VALIDATION: Prevent ANY production that would result in negative stock
       // This ensures no overselling through production process
@@ -101,7 +96,6 @@ export async function POST(
       }
     }
 
-    console.log('✅ Stock validation passed');
 
     // ============================================================
     // STEP 4: Update status to 'posted'
@@ -116,7 +110,6 @@ export async function POST(
 
     if (updateStatusError) throw updateStatusError;
 
-    console.log('✅ Status updated to posted');
 
     // ============================================================
     // STEP 5: Proses pengurangan bahan baku + INSERT STOCK HISTORY
@@ -137,7 +130,6 @@ export async function POST(
       const jumlahKeluar = parseFloat(detail.jumlah?.toString() || '0');
       const newStok = currentStok - jumlahKeluar;
 
-      console.log(`  📉 ${item.nama_produk}: ${currentStok} - ${jumlahKeluar} = ${newStok}`);
 
       // Update stock bahan baku
       const { error: updateStokError } = await supabase
@@ -182,7 +174,6 @@ export async function POST(
       }
     }
 
-    console.log('✅ All materials deducted successfully');
 
     // ============================================================
     // STEP 6: Tambah stock hasil produksi + INSERT STOCK HISTORY
@@ -200,7 +191,6 @@ export async function POST(
       const jumlahMasuk = parseFloat(produksiData.jumlah?.toString() || '0');
       const newStokHasil = currentStokHasil + jumlahMasuk;
 
-      console.log(`  📈 ${produkHasil.nama_produk}: ${currentStokHasil} + ${jumlahMasuk} = ${newStokHasil}`);
 
       // Update stock hasil
       const { error: updateHasilError } = await supabase
@@ -220,7 +210,6 @@ export async function POST(
       );
       const hppPerUnit = jumlahMasuk > 0 ? totalHPP / jumlahMasuk : 0;
 
-      console.log(`  💰 HPP: Total=${totalHPP} / Qty=${jumlahMasuk} = ${hppPerUnit} per unit`);
 
       // ✅ INSERT history dengan FOREIGN KEY!
       const { error: historyMasukError } = await supabase
@@ -265,7 +254,6 @@ export async function POST(
         // Don't throw, process is still successful
       }
 
-      console.log('✅ Production posted successfully!');
     }
 
     return NextResponse.json({
@@ -292,7 +280,6 @@ export async function POST(
         .update({ status: 'pending' })
         .eq('id', parseInt(id));
       
-      console.log('🔄 Status rolled back to pending');
     } catch (rollbackError) {
       console.error('⚠️ Failed to rollback status:', rollbackError);
     }

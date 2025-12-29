@@ -136,7 +136,6 @@ export async function DELETE(
       );
     }
 
-    console.log('🗑️ DELETE PENJUALAN ID:', id);
 
     // ============================================================
     // STEP 1: Get penjualan data
@@ -158,9 +157,6 @@ export async function DELETE(
       );
     }
 
-    console.log('📦 Penjualan:', penjualan.nota_penjualan);
-    console.log('📊 Status:', penjualan.status);
-    console.log('📊 Status Diterima:', penjualan.status_diterima);
 
     // ============================================================
     // STEP 2: Validate - Check cicilan
@@ -196,11 +192,6 @@ export async function DELETE(
     // STEP 4: Restore Stock (pakai helper)
     // ============================================================
     const stockResult = await restoreStock('penjualan', parseInt(id));
-    
-    console.log(stockResult.restored 
-      ? `✅ Stock restored: ${stockResult.count} products`
-      : 'ℹ️ No stock to restore'
-    );
 
     // ============================================================
     // STEP 5: Restore Kas (if tunai)
@@ -221,7 +212,6 @@ export async function DELETE(
             true // Money came in (kredit), so we subtract to reverse
           );
           
-          console.log(`✅ Kas restored: ${kasResult.kas}, Rp ${kasResult.amount}`);
         } catch (kasError: any) {
           console.error('⚠️ Warning: Kas restore failed:', kasError.message);
           // Don't block deletion, just warn
@@ -241,7 +231,6 @@ export async function DELETE(
 
       if (!deletePiutangError) {
         piutangDeleted = true;
-        console.log('✅ Piutang deleted');
       } else {
         console.error('⚠️ Warning: Piutang delete failed:', deletePiutangError);
       }
@@ -299,7 +288,6 @@ export async function DELETE(
       ? `Penjualan berhasil dibatalkan dan ${actions.join(', ')}`
       : 'Penjualan berhasil dibatalkan';
 
-    console.log(`✅ DELETE SUKSES! (${executionTime}ms)`);
 
     return NextResponse.json({
       success: true,
@@ -345,7 +333,6 @@ export async function PATCH(
 
     // Cek apakah customer berubah dan perlu reset cicilan
     if (body.reset_cicilan === true && body.customer_id) {
-      console.log('Reset cicilan untuk penjualan', id, '- Ganti customer');
 
       const { data: currentPenjualan } = await supabase
         .from('transaksi_penjualan')
@@ -360,7 +347,6 @@ export async function PATCH(
           .select('id, jumlah_cicilan, kas_id, tanggal_cicilan')
           .eq('penjualan_id', id);
 
-        console.log('Found', cicilans?.length || 0, 'cicilans to reset');
 
         if (cicilans && cicilans.length > 0) {
           for (const cicilan of cicilans) {
@@ -381,7 +367,6 @@ export async function PATCH(
                   .update({ saldo: newSaldo })
                   .eq('id', kas.id);
 
-                console.log('Kas', kas.nama_kas, ':', kasSaldo, '-', jumlahCicilan, '=', newSaldo);
 
                 await supabase
                   .from('transaksi_kas')
@@ -406,7 +391,6 @@ export async function PATCH(
             throw deleteCicilanError;
           }
 
-          console.log('Deleted', cicilans.length, 'cicilans');
         }
 
         if (currentPenjualan.uang_muka && currentPenjualan.uang_muka > 0) {
@@ -433,7 +417,6 @@ export async function PATCH(
                 .update({ saldo: newSaldo })
                 .eq('id', kas.id);
 
-              console.log('Kas uang muka', kas.nama_kas, ':', kasSaldo, '-', uangMuka, '=', newSaldo);
 
               await supabase
                 .from('transaksi_kas')
@@ -464,7 +447,6 @@ export async function PATCH(
             })
             .eq('penjualan_id', id);
 
-          console.log('Piutang direset: sisa =', piutang.total_piutang);
         }
 
         await supabase
@@ -475,7 +457,6 @@ export async function PATCH(
           })
           .eq('id', id);
 
-        console.log('Reset cicilan selesai!');
       }
     }
 

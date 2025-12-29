@@ -57,7 +57,6 @@ export async function PUT(
     const { id } = await context.params;
     const body = await request.json();
 
-    console.log('🔵 Updating stock opname:', id, body);
 
     // Get opname data
     const { data: opname, error: getError } = await supabase
@@ -96,12 +95,6 @@ export async function PUT(
 
     // If approved, adjust the stock
     if (body.status === 'approved' && Math.abs(opname.selisih) > 0.001) {
-      console.log('📄 Adjusting stock via OPNAME...');
-      console.log('   Produk ID:', opname.produk_id);
-      console.log('   Cabang ID:', opname.cabang_id);
-      console.log('   Stock Sistem:', opname.jumlah_sistem);
-      console.log('   Stock Fisik:', opname.jumlah_fisik);
-      console.log('   Selisih:', opname.selisih);
 
       // ✅ CHECK: Apakah adjustment ini sudah dicatat sebelumnya?
       const { data: existingAdjustment } = await supabase
@@ -144,11 +137,6 @@ export async function PUT(
         throw stockError;
       }
 
-      console.log('✅ Stock adjustment created:', {
-        jumlah: Math.abs(opname.selisih),
-        tipe: opname.selisih > 0 ? 'masuk' : 'keluar',
-      });
-
       // ✅ FIXED: Update produk.stok langsung dengan selisih (jangan recalculate!)
       const { data: currentProduk, error: getProdukError } = await supabase
         .from('produk')
@@ -161,7 +149,6 @@ export async function PUT(
       const currentStock = parseFloat(currentProduk.stok?.toString() || '0');
       const newStock = currentStock + parseFloat(opname.selisih.toString());
 
-      console.log(`📊 Stock update: ${currentStock} + (${opname.selisih}) = ${newStock}`);
 
       // Update produk table
       const { error: produkError } = await supabase
@@ -174,7 +161,6 @@ export async function PUT(
         throw produkError;
       }
 
-      console.log('✅ Produk stock updated to:', newStock);
     }
 
     return NextResponse.json({
@@ -199,7 +185,6 @@ export async function DELETE(
     const supabase = await supabaseAuthenticated();
     const { id } = await context.params;
 
-    console.log('Deleting stock opname:', id);
 
     // Get opname data
     const { data: opname, error: getError } = await supabase
@@ -218,7 +203,6 @@ export async function DELETE(
 
     // If approved, reverse the stock adjustments
     if (opname.status === 'approved' && Math.abs(opname.selisih) > 0.001) {
-      console.log('🔄 Reversing stock adjustments for approved opname...');
 
       // 1. Delete the adjustment record from stock_barang
       const { error: deleteStockError } = await supabase
@@ -233,7 +217,6 @@ export async function DELETE(
         throw deleteStockError;
       }
 
-      console.log('✅ Stock adjustment record deleted');
 
       // 2. Reverse the stock change in produk table
       const { data: currentProduk, error: getProdukError } = await supabase
@@ -247,7 +230,6 @@ export async function DELETE(
       const currentStock = parseFloat(currentProduk.stok?.toString() || '0');
       const reversedStock = currentStock - parseFloat(opname.selisih.toString()); // Reverse the adjustment
 
-      console.log(`🔄 Stock reversal: ${currentStock} - (${opname.selisih}) = ${reversedStock}`);
 
       const { error: produkError } = await supabase
         .from('produk')
@@ -259,7 +241,6 @@ export async function DELETE(
         throw produkError;
       }
 
-      console.log('✅ Produk stock reversed to:', reversedStock);
     }
 
     // Delete the stock opname record
@@ -270,7 +251,6 @@ export async function DELETE(
 
     if (deleteError) throw deleteError;
 
-    console.log('✅ Stock opname deleted');
 
     return NextResponse.json({
       success: true,

@@ -22,7 +22,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { mode } = body; // 'check' or 'reset'
 
-    console.log(`🔄 Reset & Rebuild Mode: ${mode}`);
 
     // ============================================
     // STEP 1: COUNT CURRENT & FUTURE RECORDS
@@ -87,7 +86,6 @@ export async function POST(request: NextRequest) {
     // STEP 2: RESET - DELETE ALL STOCK_BARANG
     // ============================================
 
-    console.log('🗑️ Deleting all stock_barang records...');
     
     const { error: deleteError } = await supabase
       .from('stock_barang')
@@ -96,7 +94,6 @@ export async function POST(request: NextRequest) {
 
     if (deleteError) throw deleteError;
 
-    console.log('✅ All stock_barang records deleted');
 
     // ============================================
     // STEP 3: REBUILD FROM SOURCES
@@ -114,7 +111,6 @@ export async function POST(request: NextRequest) {
     };
 
     // 3.1. Insert from detail_pembelian
-    console.log('📦 Rebuilding from pembelian...');
     const { data: pembelianData } = await supabase
       .from('detail_pembelian')
       .select(`
@@ -150,7 +146,6 @@ export async function POST(request: NextRequest) {
     }
 
     // 3.2. Insert from produksi
-    console.log('🏭 Rebuilding from produksi...');
     const { data: produksiData } = await supabase
       .from('produksi')
       .select('id, produk_id, jumlah, cabang_id, tanggal, kode_produksi');
@@ -175,7 +170,6 @@ export async function POST(request: NextRequest) {
     }
 
     // 3.3. Insert from detail_penjualan (konsinyasi only)
-    console.log('🏪 Rebuilding from konsinyasi...');
     const { data: konsinyasiData } = await supabase
       .from('detail_penjualan')
       .select(`
@@ -213,7 +207,6 @@ export async function POST(request: NextRequest) {
     }
 
     // 3.4. Insert from stock_opname (approved only)
-    console.log('📋 Rebuilding from stock opname...');
     const { data: opnameData } = await supabase
       .from('stock_opname')
       .select('id, produk_id, cabang_id, selisih, tanggal')
@@ -242,7 +235,6 @@ export async function POST(request: NextRequest) {
     }
 
     // 3.5. Insert from detail_produksi (bahan)
-    console.log('🧪 Rebuilding from bahan produksi...');
     const { data: bahanData } = await supabase
       .from('detail_produksi')
       .select(`
@@ -280,7 +272,6 @@ export async function POST(request: NextRequest) {
     // STEP 4: RECALCULATE ALL PRODUK.STOK
     // ============================================
 
-    console.log('📊 Recalculating all produk.stok...');
 
     const { data: allProducts } = await supabase
       .from('produk')
@@ -313,7 +304,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log('✅ Reset & Rebuild completed!');
 
     return NextResponse.json({
       success: true,

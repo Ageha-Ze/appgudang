@@ -37,12 +37,10 @@ export default function LoginPage() {
     const result = await loginUser(formData.username, formData.password);
 
     if (result.success) {
-      console.log('✅ Login successful, refreshing user context...');
 
       // Refresh user context sebelum redirect
       await refreshUser();
 
-      console.log('✅ User context refreshed, redirecting...');
       router.push('/dashboard');
     } else {
       setError(result.error || 'Login gagal');

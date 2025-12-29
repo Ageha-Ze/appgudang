@@ -23,13 +23,11 @@ export async function GET(request: NextRequest) {
 
     const offset = (page - 1) * limit;
 
-    console.log('📊 Fetching stock with params:', { page, limit, search, cabang_id, mode });
 
     // ========================================
     // ✅ MODE: AGGREGATED (For Dropdown/Selection - BRANCH SPECIFIC)
     // ========================================
     if (mode === 'aggregated') {
-      console.log('🔍 Aggregated mode with cabang_id:', cabang_id);
 
       // Step 1: Only get products that exist in this branch
       const { data: stockData, error: stockError } = await supabase
@@ -54,7 +52,6 @@ export async function GET(request: NextRequest) {
 
       // Extract unique produk IDs for this branch
       const produkIds = [...new Set(stockData.map(item => item.produk_id))];
-      console.log('Found produk IDs in cabang:', produkIds);
 
       // Step 2: Calculate actual available stock for each product in this branch
       const bahan = [];
@@ -128,7 +125,6 @@ export async function GET(request: NextRequest) {
       // Apply limit
       const limitedData = filteredData.slice(0, limit);
 
-      console.log(`✅ Returned ${limitedData.length} real-stock products in branch ${cabang_id} (aggregated mode)`);
 
       return NextResponse.json({
         success: true,
@@ -380,18 +376,13 @@ export async function GET(request: NextRequest) {
 
     // 🔍 DEBUG: Log first 3 items for decode calculation
     if (formattedData.length > 0) {
-      console.log('📊 First 3 stock calculations:');
       formattedData.slice(0, 3).forEach((item, idx) => {
-        console.log(`  ${idx + 1}. ${item.nama_produk}:`);
-        console.log(`    Stock: ${item.stock} (Masuk: ${item.stock_masuk} - Keluar: ${item.stock_keluar})`);
-        console.log(`    Result: ${item.stock_masuk} - ${item.stock_keluar} = ${item.stock}`);
       });
     }
 
     const totalRecords = count || 0;
     const totalPages = Math.ceil(totalRecords / limit);
 
-    console.log(`✅ Returned ${formattedData.length} products (overview mode)`);
 
     return NextResponse.json({
       success: true,
@@ -432,7 +423,6 @@ export async function POST(request: NextRequest) {
       keterangan,
     } = body;
 
-    console.log('📝 Manual stock entry:', { produk_id, cabang_id, jumlah, tipe });
 
     // Validation
     if (!produk_id || !cabang_id || !jumlah || !tipe) {
@@ -471,10 +461,8 @@ export async function POST(request: NextRequest) {
     let newStock = currentStock;
     if (tipe === 'masuk') {
       newStock += jumlahFloat;
-      console.log(`  📈 Stock masuk: ${currentStock} + ${jumlahFloat} = ${newStock}`);
     } else {
       newStock -= jumlahFloat;
-      console.log(`  📉 Stock keluar: ${currentStock} - ${jumlahFloat} = ${newStock}`);
       
       // Validation: check if stock is sufficient
       if (newStock < 0) {
@@ -508,7 +496,6 @@ export async function POST(request: NextRequest) {
       throw updateError;
     }
 
-    console.log('✅ Stock updated in produk table');
 
     // ✅ Step 2: Insert history SETELAH update berhasil
     const { data: stockData, error: insertError } = await supabase
@@ -543,7 +530,6 @@ export async function POST(request: NextRequest) {
       throw insertError;
     }
 
-    console.log('✅ History recorded successfully');
 
     return NextResponse.json({
       success: true,

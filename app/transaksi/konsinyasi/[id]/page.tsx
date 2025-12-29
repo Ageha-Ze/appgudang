@@ -550,17 +550,8 @@ if (loading) {
   <div className="overflow-x-auto">
     <table className="w-full border-collapse">
       <thead className="bg-indigo-100">
-      <tr>
-          <th className="px-4 py-3 text-left border border-indigo-200">Produk</th>
-          <th className="px-4 py-3 text-right border border-indigo-200">Titip</th>
-          <th className="px-4 py-3 text-right border border-indigo-200">Terjual</th>
-          <th className="px-4 py-3 text-right border border-indigo-200">Sisa</th>
-          <th className="px-4 py-3 text-right border border-indigo-200">Kembali</th>
-          <th className="px-4 py-3 text-right border border-indigo-200">Harga Kita</th>
-          <th className="px-4 py-3 text-right border border-indigo-200">Harga Toko</th>
-          <th className="px-4 py-3 text-right border border-indigo-200">Subtotal</th>
-          <th className="px-4 py-3 text-center border border-indigo-200">Aksi</th> {/* ✅ HEADER AKSI */}
-        </tr>
+        
+        <tr><th className="px-4 py-3 text-left border border-indigo-200">Produk</th><th className="px-4 py-3 text-right border border-indigo-200">Titip</th><th className="px-4 py-3 text-right border border-indigo-200">Terjual</th><th className="px-4 py-3 text-right border border-indigo-200">Sisa</th><th className="px-4 py-3 text-right border border-indigo-200">Kembali</th><th className="px-4 py-3 text-right border border-indigo-200">Harga Kita</th><th className="px-4 py-3 text-right border border-indigo-200">Harga Toko</th><th className="px-4 py-3 text-right border border-indigo-200">Subtotal</th><th className="px-4 py-3 text-center border border-indigo-200">Aksi</th></tr>
       </thead>
       <tbody>
         {data.detail_konsinyasi?.map((detail, index) => (

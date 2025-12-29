@@ -105,14 +105,6 @@ export default function DashboardPage() {
     : 0;
   const efisiensiOperasional = pendapatan > 0 ? ((pengeluaran / pendapatan) * 100) : 0;
 
-  // Debug log
-  console.log('📊 Dashboard Data:', {
-    pendapatan,
-    hpp,
-    pengeluaran,
-    labaKotor,
-    marginLaba
-  });
 
   // Pie data - only show positive values
   const pieData = [
@@ -121,7 +113,6 @@ export default function DashboardPage() {
     { name: 'Laba', value: labaKotor > 0 ? labaKotor : 0, color: '#10b981' },
   ].filter(item => item.value > 0);
 
-  console.log('🥧 Pie Data:', pieData);
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">

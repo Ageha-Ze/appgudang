@@ -64,44 +64,32 @@ export default function PiutangPenjualanPage() {
 
   const fetchKasList = async (cabangId?: number) => {
   try {
-    console.log('🔍 Fetching kas list...', cabangId ? `for cabang ${cabangId}` : 'all cabangs');
     const url = cabangId ? `/api/master/kas?cabang_id=${cabangId}` : '/api/master/kas';
     const response = await fetch(url);
-    console.log('📡 Response status:', response.status);
 
     if (response.ok) {
       const result = await response.json();
-      console.log('📦 Raw result:', result);
-
       const kasData = result.data || result;
-      console.log('📋 Kas Data:', kasData);
-      console.log('📋 Is Array?', Array.isArray(kasData));
 
       // Ensure kasData is an array
       const kasArray = Array.isArray(kasData) ? kasData : [];
-      console.log('📋 Kas Array:', kasArray);
-
       setKasList(kasArray);
 
       // Set default kas_id jika ada
       if (kasArray.length > 0) {
-        console.log('✅ Setting default kas:', kasArray[0]);
         setFormPembayaran(prev => ({
           ...prev,
           kasId: kasArray[0].id.toString()
         }));
       } else {
-        console.warn('⚠️ Kas list kosong!');
         setFormPembayaran(prev => ({ ...prev, kasId: '' }));
       }
     } else {
-      console.error('❌ Response not OK:', response.status);
-      setKasList([]); // Ensure it's an array even on error
+      setKasList([]);
       setFormPembayaran(prev => ({ ...prev, kasId: '' }));
     }
   } catch (error) {
-    console.error('❌ Error fetching kas list:', error);
-    setKasList([]); // Ensure it's an array even on error
+    setKasList([]);
     setFormPembayaran(prev => ({ ...prev, kasId: '' }));
   }
 };
@@ -165,37 +153,21 @@ export default function PiutangPenjualanPage() {
 
   const fetchCabangList = async () => {
   try {
-    console.log('🔍 Fetching cabang list...');
     const response = await fetch('/api/master/cabang');
-    console.log('📡 Cabang API response status:', response.status);
 
     if (response.ok) {
       const data = await response.json();
-      console.log('📦 Cabang raw data:', data);
 
       // Check if data is wrapped in a data property (common API pattern)
       const cabangData = data.data || data;
-      console.log('📋 Processed cabang data:', cabangData);
-      console.log('📋 Is Array?', Array.isArray(cabangData));
-      console.log('📋 Array length:', Array.isArray(cabangData) ? cabangData.length : 'N/A');
-
-      if (Array.isArray(cabangData) && cabangData.length > 0) {
-        console.log('✅ Sample cabang item:', cabangData[0]);
-      }
 
       // Ensure cabangData is an array
       const finalData = Array.isArray(cabangData) ? cabangData : [];
-      console.log('🔄 Final cabang data to set:', finalData);
       setCabangList(finalData);
     } else {
-      console.error('❌ Response not OK:', response.status);
-      const errorText = await response.text();
-      console.error('❌ Error response:', errorText);
       setCabangList([]);
     }
   } catch (error) {
-    console.error('💥 Error fetching cabang list:', error);
-    console.error('💥 Error details:', error);
     setCabangList([]);
   }
 };

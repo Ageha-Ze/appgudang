@@ -16,7 +16,6 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const cabangId = searchParams.get('cabang_id');
 
-    console.log('📊 Fetching history for produk_id:', id, 'cabang_id:', cabangId);
 
     // Get produk info
     const { data: produk, error: produkError } = await supabase
@@ -76,7 +75,6 @@ export async function GET(
         const branch_stock = total_masuk - total_keluar;
         current_stock = branch_stock;
       } catch (error) {
-        console.log('Using global stock as fallback');
       }
     }
 
@@ -113,14 +111,6 @@ export async function GET(
     // Reverse for display (newest first)
     const historiesReversed = [...historiesWithBalance].reverse();
 
-    console.log('📊 Stock Summary:', {
-      stock_awal,
-      total_masuk,
-      total_keluar,
-      stock_akhir: current_stock,
-      net_movement
-    });
-
     return NextResponse.json({
       success: true,
       data: historiesReversed,
@@ -156,7 +146,6 @@ export async function DELETE(
     const supabase = await supabaseAuthenticated();
     const { id } = await context.params;
 
-    console.log('🗑️ Deleting stock transaction:', id);
 
     // Get transaction data before delete
     const { data: transaction, error: getError } = await supabase
@@ -224,7 +213,6 @@ export async function DELETE(
 
     if (updateError) throw updateError;
 
-    console.log('✅ Transaction deleted and stock updated');
 
     return NextResponse.json({
       success: true,

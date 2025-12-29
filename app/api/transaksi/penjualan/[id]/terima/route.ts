@@ -12,7 +12,6 @@ export async function POST(
     const { id } = await context.params;
     const body = await request.json();
 
-    console.log('✅ Konfirmasi penerimaan:', id, body);
 
     // ✅ Step 1: Get penjualan data dengan detail
     const { data: penjualan, error: getPenjualanError } = await supabase
@@ -33,7 +32,6 @@ export async function POST(
     if (getPenjualanError) throw getPenjualanError;
     if (!penjualan) throw new Error('Penjualan tidak ditemukan');
 
-    console.log('📦 Penjualan data:', penjualan);
 
     // ✅ CRITICAL FIX: Validate billing status BEFORE allowing receipt
     if (penjualan.status !== 'billed') {
@@ -58,7 +56,6 @@ export async function POST(
     }
 
     // ✅ Step 2: Validasi stock SEMUA produk DULU
-    console.log('🔍 Validating stock for', details.length, 'items...');
 
     for (const detail of details) {
       if (!detail.produk_id) continue;
@@ -77,7 +74,6 @@ export async function POST(
       const needed = parseFloat(detail.jumlah?.toString() || '0');
       const satuan = produk.satuan?.toLowerCase() || '';
 
-      console.log(`  - ${produk.nama_produk}: stock=${currentStok}, needed=${needed}, satuan=${satuan}`);
 
       // 🔒 CONDITIONAL STOCK VALIDATION: Only validate stock for non-Kg products
       // For Kg products, we allow billing without stock commitment
@@ -89,11 +85,9 @@ export async function POST(
           );
         }
       } else {
-        console.log(`  ⚠️ Skip stock validation for ${produk.nama_produk} (Kg product) - will be checked at pickup`);
       }
     }
 
-    console.log('✅ Stock validation passed');
 
     // ✅ Step 3: Update status_diterima
     const { error: updateError } = await supabase
@@ -108,7 +102,6 @@ export async function POST(
 
     if (updateError) throw updateError;
 
-    console.log('✅ Status diterima updated');
 
     // ✅ Step 4: Kurangi stock produk
     for (const detail of details) {
@@ -128,7 +121,6 @@ export async function POST(
       const satuan = produk.satuan?.toLowerCase() || '';
 
       const newStok = currentStok - jumlahKeluar;
-      console.log(`  📉 ${produk.nama_produk}: ${currentStok} - ${jumlahKeluar} = ${newStok}`);
 
       // Update stock produk
       const { error: updateStokError } = await supabase
@@ -156,7 +148,6 @@ export async function POST(
         .maybeSingle();
 
       if (existingRecord) {
-        console.log('⏭️ Stock record already exists, skipping insert');
         continue;
       }
 
@@ -180,7 +171,6 @@ export async function POST(
       }
     }
 
-    console.log('✅ All stock reduced successfully');
 
     return NextResponse.json({
       success: true,
@@ -209,7 +199,6 @@ export async function POST(
         })
         .eq('id', id);
       
-      console.log('🔄 Status rolled back');
     } catch (rollbackError) {
       console.error('⚠️ Failed to rollback:', rollbackError);
     }

@@ -136,27 +136,20 @@ export default function HutangPembelianPage() {
 
   const fetchKasList = async () => {
     try {
-      console.log('🔍 Fetching kas list...');
       const response = await fetch('/api/master/kas');
-      console.log('📡 Response status:', response.status);
 
       if (response.ok) {
         const result = await response.json();
-        console.log('📦 Raw result:', result);
 
         const kasData = result.data || result;
-        console.log('📋 Kas Data:', kasData);
-        console.log('📋 Is Array?', Array.isArray(kasData));
 
         // Ensure kasData is an array
         const kasArray = Array.isArray(kasData) ? kasData : [];
-        console.log('📋 Kas Array:', kasArray);
 
         setKasList(kasArray);
 
         // Set default kas_id jika ada
         if (kasArray.length > 0) {
-          console.log('✅ Setting default kas:', kasArray[0]);
           setFormPembayaran(prev => ({
             ...prev,
             kasId: kasArray[0].id.toString()

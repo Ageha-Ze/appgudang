@@ -188,7 +188,6 @@ export async function POST(request: NextRequest) {
 
     const nota_penjualan = `PJ-${today}-${notaNumber.toString().padStart(4, '0')}`;
 
-    console.log('📝 Generated nota_penjualan:', nota_penjualan);
 
     // 🔥 INSERT LANGSUNG DENGAN NOTA (FIX RACE CONDITION)
     const penjualanData = {
@@ -205,7 +204,6 @@ export async function POST(request: NextRequest) {
       keterangan: body.keterangan || ''
     };
 
-    console.log('📝 Creating penjualan with data:', penjualanData);
 
     // 🔥 RETRY LOGIC: Jika duplicate, coba lagi dengan nomor baru
     let retryCount = 0;
@@ -271,7 +269,6 @@ export async function POST(request: NextRequest) {
       throw new Error('Failed to create penjualan after retries');
     }
 
-    console.log('✅ Penjualan created successfully with nota:', data?.nota_penjualan);
 
     return NextResponse.json({
       success: true,
@@ -304,7 +301,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log('DELETE PENJUALAN ID:', id);
 
     // 1. Get penjualan data dengan detail
     const { data: penjualan, error: fetchError } = await supabase
@@ -334,8 +330,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log('Penjualan:', penjualan.nota_penjualan);
-    console.log('Detail items:', penjualan.detail_penjualan?.length || 0);
 
     // 2. Cek apakah sudah ada cicilan/pembayaran
     const { data: cicilan } = await supabase
@@ -353,7 +347,6 @@ export async function DELETE(request: NextRequest) {
     // 3. KEMBALIKAN STOCK untuk setiap produk
     if (penjualan.detail_penjualan && penjualan.detail_penjualan.length > 0) {
       for (const detail of penjualan.detail_penjualan) {
-        console.log(`Kembalikan stock produk ID ${detail.produk_id}: +${detail.jumlah}`);
 
         // Get current stock
         const { data: produk, error: produkError } = await supabase
@@ -370,7 +363,6 @@ export async function DELETE(request: NextRequest) {
         const stokLama = parseFloat(produk.stok?.toString() || '0');
         const stokBaru = stokLama + parseFloat(detail.jumlah?.toString() || '0');
 
-        console.log(`   ${produk.nama_produk}: ${stokLama} -> ${stokBaru}`);
 
         // Update stock
         const { error: updateStockError } = await supabase
@@ -381,7 +373,6 @@ export async function DELETE(request: NextRequest) {
         if (updateStockError) {
           console.error(`Error update stock produk ${detail.produk_id}:`, updateStockError);
         } else {
-          console.log('   Stock updated');
         }
 
         // Insert history stock (opsional - untuk audit trail)
@@ -406,7 +397,6 @@ export async function DELETE(request: NextRequest) {
     if (deleteDetailError) {
       console.error('Error delete detail:', deleteDetailError);
     } else {
-      console.log('Detail penjualan deleted');
     }
 
     // 5. Delete transaksi_penjualan
@@ -420,8 +410,6 @@ export async function DELETE(request: NextRequest) {
       throw deletePenjualanError;
     }
 
-    console.log('Penjualan deleted');
-    console.log('DELETE SUKSES! Stock sudah dikembalikan.');
 
     return NextResponse.json({
       success: true,

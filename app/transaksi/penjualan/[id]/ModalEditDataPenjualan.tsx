@@ -374,7 +374,7 @@ export default function ModalEditDataPenjualan({
             >
               <option value="">-- Pilih Jenis Pembayaran --</option>
               <option value="tunai">Tunai</option>
-              <option value="transfer">Transfer</option>
+              <option value="hutang">Hutang</option>
             </select>
           </div>
 

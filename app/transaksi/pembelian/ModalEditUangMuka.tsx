@@ -88,12 +88,10 @@ export default function ModalEditUangMuka({
         ? `/api/master/kas?cabang_id=${cabangId}`
         : '/api/master/kas';
       
-      console.log('Fetching rekenings from:', url);
       
       const res = await fetch(url);
       const json = await res.json();
       
-      console.log('Rekenings response:', json);
       
       if (json.data && json.data.length > 0) {
         const parsedData = json.data.map((rek: any) => ({
@@ -101,7 +99,6 @@ export default function ModalEditUangMuka({
           saldo: parseFloat(rek.saldo) || 0
         }));
         setRekenings(parsedData);
-        console.log('Rekenings set successfully:', parsedData.length, 'items');
         
         if (currentData.rekening_bayar) {
           const kas = parsedData.find((k: Kas) => k.nama_kas === currentData.rekening_bayar);

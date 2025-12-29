@@ -31,6 +31,9 @@ interface Penjualan {
   biaya_potong?: number;
   nilai_diskon?: number;
   uang_muka?: number;
+  pegawai?: {
+    cabang_id?: number;
+  };
 }
 
 export default function ModalCicilan({
@@ -54,7 +57,6 @@ export default function ModalCicilan({
 
   useEffect(() => {
     if (isOpen) {
-      fetchKas();
       fetchPenjualan();
       fetchCicilans();
       // Reset form
@@ -68,10 +70,20 @@ export default function ModalCicilan({
     }
   }, [isOpen]);
 
+  // Fetch kas accounts when penjualan data is loaded
+  useEffect(() => {
+    if (penjualan) {
+      fetchKas();
+    }
+  }, [penjualan]);
+
   const fetchKas = async () => {
     try {
       setLoadingKas(true);
-      const res = await fetch('/api/master/kas');
+      // Get cabang_id from penjualan data to filter kas by branch
+      const cabangId = penjualan?.pegawai?.cabang_id;
+      const url = cabangId ? `/api/master/kas?cabang_id=${cabangId}` : '/api/master/kas';
+      const res = await fetch(url);
       const json = await res.json();
       setKasList(json.data || []);
     } catch (error) {
@@ -200,7 +212,7 @@ export default function ModalCicilan({
         </div>
       ) : (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-yellow-50 rounded-lg p-6 w-full max-w-md">
+      <div className="bg-yellow-50 rounded-lg p-6 w-full max-w-lg">
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Cicilan Penjualan</h2>
@@ -257,7 +269,7 @@ export default function ModalCicilan({
                 <option value={0}>-- Pilih Rekening --</option>
                 {kasList.map((kas) => (
                   <option key={kas.id} value={kas.id}>
-                    {kas.nama_kas} {kas.no_rekening ? `(${kas.no_rekening})` : ''}
+                    {kas.nama_kas} {kas.no_rekening ? `(${kas.no_rekening})` : ''} - Saldo: Rp. {Number(kas.saldo).toLocaleString('id-ID')}
                   </option>
                 ))}
               </select>

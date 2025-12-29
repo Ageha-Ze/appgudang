@@ -60,15 +60,10 @@ export default function ModalTambahProduksi({ isOpen, onClose, onSuccess }: Moda
   const fetchProduks = async () => {
     try {
       setLoadingProduks(true);
-      console.log('🔍 Fetching all products from master/produk');
 
       const res = await fetch('/api/master/produk');
-      console.log('📥 Response status:', res.status);
 
       const json = await res.json();
-      console.log('📦 Full response:', json);
-      console.log('📊 Data array:', json.data);
-      console.log('📈 Data length:', json.data?.length);
 
       if (!res.ok) {
         console.error('❌ API Error:', json.error);
@@ -78,7 +73,6 @@ export default function ModalTambahProduksi({ isOpen, onClose, onSuccess }: Moda
       }
 
       const products = json.data || [];
-      console.log('✅ Products to set:', products);
       setProduks(products);
 
       if (products.length === 0) {

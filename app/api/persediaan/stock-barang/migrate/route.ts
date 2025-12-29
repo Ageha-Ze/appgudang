@@ -21,7 +21,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`🔄 Starting data migration action: ${action}`);
 
     let result;
 

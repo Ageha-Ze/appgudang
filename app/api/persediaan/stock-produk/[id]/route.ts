@@ -14,8 +14,6 @@ export async function PUT(
     const { id } = await context.params;
     const body = await request.json();
 
-    console.log('🔍 Updating stock_produk ID:', id);
-    console.log('📦 Data yang akan diupdate:', body);
 
     // 🔒 STEP 1: Ambil data SEBELUM update untuk tracking
     const { data: currentStock, error: getCurrentError } = await supabase
@@ -29,7 +27,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Stock produk tidak ditemukan' }, { status: 404 });
     }
 
-    console.log('✅ Current stock sebelum update:', currentStock);
 
     // 🔒 STEP 2: Update HANYA record ini di stock_produk
     const { error: updateError } = await supabase
@@ -84,7 +81,6 @@ export async function PUT(
 
     if (verifyError) throw verifyError;
 
-    console.log('✅ Stock setelah update:', verifyStock);
 
     return NextResponse.json({
       success: true,
@@ -116,7 +112,6 @@ export async function DELETE(
 
     const { id } = await context.params;
 
-    console.log('🗑️ Deleting stock_produk ID:', id);
 
     // Get data sebelum hapus
     const { data: stock, error: getError } = await supabase

@@ -98,11 +98,6 @@ export async function GET(
 
     // 🔍 DEBUG LOG - Deteksi inkonsistensi data
     const dibayarFromDB = parseFloat(penjualan.dibayar?.toString() || '0');
-    console.log('🔍 DEBUG DETAIL PIUTANG:');
-    console.log('   Total dari DB field:', penjualan.total);
-    console.log('   Total dari Detail Penjualan:', totalPiutang);
-    console.log('   Terbayar dari Field DB:', dibayarFromDB);
-    console.log('   Terbayar dari SUM Cicilan:', terbayarDariCicilan);
 
     // ✅ DETECTION: Prevent negative balances when customer overpays
     if (terbayarDariCicilan > totalPiutang) {
@@ -113,7 +108,6 @@ export async function GET(
       sisaPiutang = 0;
     }
 
-    console.log('   Sisa Piutang:', sisaPiutang);
 
     // Handle relasi
     const cabang = Array.isArray(penjualan.cabang) 
@@ -181,11 +175,6 @@ export async function PUT(
     const penjualanId = parseInt(id);
     const amount = parseFloat(jumlahBayar);
 
-    console.log('💰 PROSES PEMBAYARAN PIUTANG');
-    console.log('   Penjualan ID:', penjualanId);
-    console.log('   Jumlah Bayar:', amount);
-    console.log('   Tanggal:', tanggalBayar);
-    console.log('   Kas ID:', kasId);
 
     // Validasi input
     if (isNaN(penjualanId) || isNaN(amount) || amount <= 0) {
@@ -252,11 +241,6 @@ export async function PUT(
 
     const newDibayar = currentDibayarFromCicilan + amount;
 
-    console.log('📊 PERHITUNGAN:');
-    console.log('   Total Piutang (Real):', total);
-    console.log('   Sudah Dibayar (dari cicilan):', currentDibayarFromCicilan);
-    console.log('   Pembayaran Baru:', amount);
-    console.log('   Total Setelah Bayar:', newDibayar);
 
     // Validasi pembayaran tidak melebihi total
     if (newDibayar > total) {
@@ -269,7 +253,6 @@ export async function PUT(
 
     // Tentukan status baru
     const newStatus = newDibayar >= total ? 'Lunas' : 'Cicil';
-    console.log('✅ Status Baru:', newStatus);
 
     // 🔥 FIX: Update dibayar dengan nilai yang BENAR (dari sum cicilan)
     const { error: updateError } = await supabase
@@ -285,7 +268,6 @@ export async function PUT(
       throw updateError;
     }
 
-    console.log('✅ Transaksi penjualan updated dengan dibayar:', newDibayar);
 
     // Insert into cicilan_penjualan
     const { data: cicilanData, error: insertError } = await supabase
@@ -305,7 +287,6 @@ export async function PUT(
       throw insertError;
     }
 
-    console.log('✅ History cicilan created, ID:', cicilanData.id);
 
     // UPDATE KAS
     const { data: kasData, error: kasError } = await supabase
@@ -325,10 +306,6 @@ export async function PUT(
     const saldoLama = parseFloat(kasData.saldo.toString());
     const saldoBaru = saldoLama + amount;
 
-    console.log('💰 UPDATE KAS:');
-    console.log('   Kas:', kasData.nama_kas);
-    console.log('   Saldo Lama:', saldoLama);
-    console.log('   Saldo Baru:', saldoBaru);
 
     const { error: updateKasError } = await supabase
       .from('kas')
@@ -343,7 +320,6 @@ export async function PUT(
       throw new Error('Gagal update saldo kas: ' + updateKasError.message);
     }
 
-    console.log('✅ Saldo kas updated');
 
     // INSERT KE TRANSAKSI KAS
     const customer = Array.isArray(currentData.customers) 
@@ -364,10 +340,8 @@ export async function PUT(
     if (transaksiKasError) {
       console.error('⚠️ Warning - Error insert transaksi kas:', transaksiKasError);
     } else {
-      console.log('✅ Transaksi kas recorded');
     }
 
-    console.log('🎉 PEMBAYARAN BERHASIL!');
 
     return NextResponse.json({
       success: true,

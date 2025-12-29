@@ -66,9 +66,21 @@ export default function UserModal({ isOpen, onClose, user, onSuccess }: UserModa
       return;
     }
 
+    // Validasi panjang username (sesuai database VARCHAR(100))
+    if (formData.username.length > 100) {
+      alert('Username maksimal 100 karakter');
+      return;
+    }
+
     // Validasi password untuk user baru
     if (!user && !formData.password.trim()) {
       alert('Password harus diisi untuk user baru');
+      return;
+    }
+
+    // Validasi panjang password
+    if ((!user || formData.updatePassword) && formData.password.length > 255) {
+      alert('Password maksimal 255 karakter');
       return;
     }
 
@@ -206,7 +218,7 @@ export default function UserModal({ isOpen, onClose, user, onSuccess }: UserModa
               className="w-full pl-10 pr-4 py-3 bg-blue-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-200 hover:bg-blue-100"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              placeholder={user ? "Kosongkan jika tidak ingin mengubah" : "Masukkan password"}
+              placeholder={user ? "" : "Masukkan password"}
               disabled={isSubmitting || (!!user && !formData.updatePassword)}
             />
           </div>
