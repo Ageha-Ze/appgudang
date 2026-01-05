@@ -328,7 +328,53 @@ export async function DELETE(request: NextRequest) {
     }
   }
 
-  // Delete konsinyasi (cascade akan menghapus detail, penjualan, retur)
+  // Delete related records first (since CASCADE delete is not working)
+  console.log('🗑️ Deleting related records...');
+
+  // Delete penjualan_konsinyasi records
+  const { error: deletePenjualanError } = await supabase
+    .from('penjualan_konsinyasi')
+    .delete()
+    .in('detail_konsinyasi_id',
+      konsinyasiData.detail_konsinyasi?.map(d => d.id) || []
+    );
+
+  if (deletePenjualanError) {
+    console.error('Error deleting penjualan_konsinyasi:', deletePenjualanError);
+    return NextResponse.json({
+      error: `Gagal menghapus data penjualan terkait: ${deletePenjualanError.message}`
+    }, { status: 500 });
+  }
+
+  // Delete retur_konsinyasi records
+  const { error: deleteReturError } = await supabase
+    .from('retur_konsinyasi')
+    .delete()
+    .in('detail_konsinyasi_id',
+      konsinyasiData.detail_konsinyasi?.map(d => d.id) || []
+    );
+
+  if (deleteReturError) {
+    console.error('Error deleting retur_konsinyasi:', deleteReturError);
+    return NextResponse.json({
+      error: `Gagal menghapus data retur terkait: ${deleteReturError.message}`
+    }, { status: 500 });
+  }
+
+  // Delete detail_konsinyasi records
+  const { error: deleteDetailError } = await supabase
+    .from('detail_konsinyasi')
+    .delete()
+    .eq('konsinyasi_id', id);
+
+  if (deleteDetailError) {
+    console.error('Error deleting detail_konsinyasi:', deleteDetailError);
+    return NextResponse.json({
+      error: `Gagal menghapus detail konsinyasi: ${deleteDetailError.message}`
+    }, { status: 500 });
+  }
+
+  // Finally delete the main konsinyasi record
   const { error: deleteError } = await supabase
     .from('transaksi_konsinyasi')
     .delete()
@@ -336,8 +382,8 @@ export async function DELETE(request: NextRequest) {
 
   if (deleteError) {
     console.error('Error deleting konsinyasi:', deleteError);
-    return NextResponse.json({ 
-      error: `Gagal menghapus konsinyasi: ${deleteError.message}` 
+    return NextResponse.json({
+      error: `Gagal menghapus konsinyasi: ${deleteError.message}`
     }, { status: 500 });
   }
 

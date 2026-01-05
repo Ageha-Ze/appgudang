@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get('search') || '';
     const limit = parseInt(searchParams.get('limit') || '1000');
+    const cabangId = searchParams.get('cabang_id'); // Filter by branch stock
 
     let query = supabase
       .from('produk')
@@ -29,16 +30,22 @@ export async function GET(request: NextRequest) {
     }
 
     // ✅ Calculate real-time stock from stock_barang table
-    
+    // If cabang_id is provided, filter products with stock > 0 in that branch
     const produkWithRealStock = await Promise.all(
       (produkList || []).map(async (produk) => {
         try {
-          // Get stock movements from stock_barang table
-          const { data: stockBarang, error: stockError } = await supabase
+          let query = supabase
             .from('stock_barang')
             .select('jumlah, tipe, tanggal')
             .eq('produk_id', produk.id)
             .order('tanggal', { ascending: true });
+
+          // Filter by branch if specified
+          if (cabangId) {
+            query = query.eq('cabang_id', parseInt(cabangId));
+          }
+
+          const { data: stockBarang, error: stockError } = await query;
 
           if (stockError) {
             console.error(`❌ Error fetching stock for ${produk.nama_produk}:`, stockError);
@@ -51,7 +58,7 @@ export async function GET(request: NextRequest) {
 
           // Calculate real stock: masuk (+) and keluar (-)
           let stokAkhir = 0;
-          
+
           if (stockBarang && stockBarang.length > 0) {
             const total_masuk = stockBarang
               .filter(m => m.tipe === 'masuk')
@@ -62,7 +69,6 @@ export async function GET(request: NextRequest) {
               .reduce((sum, m) => sum + parseFloat(m.jumlah.toString()), 0);
 
             stokAkhir = total_masuk - total_keluar;
-
           } else {
             // No stock movements, use DB stock as fallback
             stokAkhir = parseFloat(produk.stok?.toString() || '0');
@@ -83,10 +89,17 @@ export async function GET(request: NextRequest) {
       })
     );
 
+    // Filter products with stock > 0 if cabang_id is specified
+    let filteredProducts = produkWithRealStock;
+    if (cabangId) {
+      filteredProducts = produkWithRealStock.filter(produk => produk.stok > 0);
+      console.log(`🔍 Filtered ${filteredProducts.length} products with stock > 0 in branch ${cabangId}`);
+    }
+
 
     return NextResponse.json({
       success: true,
-      data: produkWithRealStock
+      data: filteredProducts
     });
   } catch (error: any) {
     console.error('Error in produk GET:', error);

@@ -80,6 +80,13 @@ export default function TambahKonsinyasiPage() {
     fetchProduk();
   }, []);
 
+  // Refetch products when branch changes
+  useEffect(() => {
+    if (formData.cabang_id) {
+      fetchProduk();
+    }
+  }, [formData.cabang_id]);
+
   useEffect(() => {
     if (formData.cabang_id) {
       fetchPegawaiByCabang(formData.cabang_id);
@@ -129,14 +136,18 @@ export default function TambahKonsinyasiPage() {
   const fetchProduk = async () => {
     try {
       setLoadingProduk(true);
-      console.log('Fetching produk...');
-      
-      const res = await fetch('/api/master/produk?limit=1000');
+      console.log('Fetching produk...', formData.cabang_id ? `for branch ${formData.cabang_id}` : 'all products');
+
+      const url = formData.cabang_id
+        ? `/api/master/produk?limit=1000&cabang_id=${formData.cabang_id}`
+        : '/api/master/produk?limit=1000';
+
+      const res = await fetch(url);
       const json = await res.json();
-      
+
       console.log('Produk response:', json);
       console.log('Produk data length:', json.data?.length);
-      
+
       if (json.data && Array.isArray(json.data)) {
         setProdukList(json.data);
         console.log('Produk berhasil dimuat:', json.data.length, 'items');

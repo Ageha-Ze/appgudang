@@ -352,11 +352,14 @@ export default function DetailKonsinyasiPage() {
         body: JSON.stringify({ status: 'Selesai' }),
       });
 
+      const json = await res.json();
+
       if (res.ok) {
         alert('Konsinyasi berhasil diselesaikan');
         fetchData();
       } else {
-        alert('Gagal menyelesaikan konsinyasi');
+        console.error('Error response:', json);
+        alert(json.error || 'Gagal menyelesaikan konsinyasi');
       }
     } catch (error) {
       console.error('Error:', error);
