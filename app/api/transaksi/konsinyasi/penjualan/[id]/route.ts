@@ -20,7 +20,8 @@ export async function GET(
           konsinyasi:konsinyasi_id (
             id,
             kode_konsinyasi,
-            cabang_id
+            cabang_id,
+            status
           ),
           produk:produk_id (
             id,
@@ -56,6 +57,8 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
+    console.log('📝 Updating penjualan:', id);
+
     // 1. Get data penjualan lama
     const { data: penjualanLama, error: errorLama } = await supabase
       .from('penjualan_konsinyasi')
@@ -64,8 +67,10 @@ export async function PUT(
         detail_konsinyasi:detail_konsinyasi_id (
           *,
           konsinyasi:konsinyasi_id (
+            id,
             kode_konsinyasi,
-            cabang_id
+            cabang_id,
+            status
           ),
           produk:produk_id (
             nama_produk,
@@ -80,9 +85,18 @@ export async function PUT(
       return NextResponse.json({ error: 'Data penjualan tidak ditemukan' }, { status: 404 });
     }
 
+    // Check if konsinyasi sudah selesai
+    if (penjualanLama.detail_konsinyasi.konsinyasi.status === 'Selesai') {
+      return NextResponse.json({ 
+        error: 'Tidak dapat mengubah penjualan konsinyasi yang sudah selesai' 
+      }, { status: 400 });
+    }
+
     const jumlahBaru = parseFloat(body.jumlah_terjual);
     const jumlahLama = parseFloat(penjualanLama.jumlah_terjual);
     const selisih = jumlahBaru - jumlahLama;
+
+    console.log(`  Jumlah lama: ${jumlahLama}, Jumlah baru: ${jumlahBaru}, Selisih: ${selisih}`);
 
     // 2. Get detail konsinyasi untuk validasi
     const { data: detail, error: detailError } = await supabase
@@ -96,7 +110,9 @@ export async function PUT(
     }
 
     // 3. Validasi jumlah baru tidak melebihi sisa + jumlah lama
-    const sisaTersedia = detail.jumlah_sisa + jumlahLama;
+    const sisaTersedia = parseFloat(detail.jumlah_sisa) + jumlahLama;
+    console.log(`  Sisa tersedia: ${sisaTersedia}`);
+
     if (jumlahBaru > sisaTersedia) {
       return NextResponse.json({
         error: `Jumlah terjual melebihi sisa yang tersedia (${sisaTersedia})`
@@ -104,12 +120,16 @@ export async function PUT(
     }
 
     // 4. Calculate ulang
-    const total_penjualan = jumlahBaru * body.harga_jual_toko;
-    const total_nilai_kita = jumlahBaru * detail.harga_konsinyasi;
+    const hargaJualToko = parseFloat(body.harga_jual_toko);
+    const hargaKonsinyasi = parseFloat(detail.harga_konsinyasi);
+    
+    const total_penjualan = jumlahBaru * hargaJualToko;
+    const total_nilai_kita = jumlahBaru * hargaKonsinyasi;
     const keuntungan_toko = total_penjualan - total_nilai_kita;
 
-    const total_nilai_kita_lama = jumlahLama * detail.harga_konsinyasi;
-    const selisih_nilai = total_nilai_kita - total_nilai_kita_lama;
+    const total_nilai_kita_lama = jumlahLama * hargaKonsinyasi;
+
+    console.log(`  Total nilai lama: ${total_nilai_kita_lama}, Total nilai baru: ${total_nilai_kita}`);
 
     // 5. Update penjualan konsinyasi
     const { error: updatePenjualanError } = await supabase
@@ -117,7 +137,7 @@ export async function PUT(
       .update({
         tanggal_jual: body.tanggal_jual,
         jumlah_terjual: jumlahBaru,
-        harga_jual_toko: body.harga_jual_toko,
+        harga_jual_toko: hargaJualToko,
         total_penjualan,
         total_nilai_kita,
         keuntungan_toko,
@@ -135,6 +155,8 @@ export async function PUT(
     const keuntungan_toko_lama = parseFloat(penjualanLama.keuntungan_toko);
     const newKeuntunganToko = parseFloat(detail.keuntungan_toko) - keuntungan_toko_lama + keuntungan_toko;
 
+    console.log(`  Update detail: terjual ${newJumlahTerjual}, sisa ${newJumlahSisa}`);
+
     const { error: updateDetailError } = await supabase
       .from('detail_konsinyasi')
       .update({
@@ -146,16 +168,16 @@ export async function PUT(
 
     if (updateDetailError) throw updateDetailError;
 
-    // 7. Hapus transaksi kas lama
-    await supabase
-      .from('transaksi_kas')
-      .delete()
-      .eq('kas_id', penjualanLama.kas_id)
-      .eq('kredit', total_nilai_kita_lama)
-      .ilike('keterangan', `%${penjualanLama.detail_konsinyasi.konsinyasi.kode_konsinyasi}%`);
-
-    // 8. Update saldo kas lama (kembalikan)
+    // 7. Update Kas - Hapus transaksi lama
     if (penjualanLama.kas_id) {
+      await supabase
+        .from('transaksi_kas')
+        .delete()
+        .eq('kas_id', penjualanLama.kas_id)
+        .eq('kredit', total_nilai_kita_lama)
+        .ilike('keterangan', `%${penjualanLama.detail_konsinyasi.konsinyasi.kode_konsinyasi}%`);
+
+      // Kurangi saldo kas lama
       const { data: kasLama } = await supabase
         .from('kas')
         .select('saldo')
@@ -163,17 +185,20 @@ export async function PUT(
         .single();
 
       if (kasLama) {
+        const saldoLamaBaru = parseFloat(kasLama.saldo) - total_nilai_kita_lama;
+        console.log(`  Update kas lama ${penjualanLama.kas_id}: ${kasLama.saldo} -> ${saldoLamaBaru}`);
+        
         await supabase
           .from('kas')
           .update({
-            saldo: parseFloat(kasLama.saldo) - total_nilai_kita_lama,
+            saldo: saldoLamaBaru,
             updated_at: new Date().toISOString()
           })
           .eq('id', penjualanLama.kas_id);
       }
     }
 
-    // 9. Update saldo kas baru (tambahkan)
+    // 8. Update saldo kas baru (tambahkan)
     const { data: kasBaru, error: kasError } = await supabase
       .from('kas')
       .select('saldo')
@@ -184,17 +209,18 @@ export async function PUT(
       return NextResponse.json({ error: 'Kas tujuan tidak ditemukan' }, { status: 404 });
     }
 
-    const saldoBaru = parseFloat(kasBaru.saldo) + total_nilai_kita;
+    const saldoBaruBaru = parseFloat(kasBaru.saldo) + total_nilai_kita;
+    console.log(`  Update kas baru ${body.kas_id}: ${kasBaru.saldo} -> ${saldoBaruBaru}`);
 
     await supabase
       .from('kas')
       .update({
-        saldo: saldoBaru,
+        saldo: saldoBaruBaru,
         updated_at: new Date().toISOString()
       })
       .eq('id', body.kas_id);
 
-    // 10. Catat transaksi kas baru
+    // 9. Catat transaksi kas baru
     const keterangan = `Penjualan konsinyasi ${penjualanLama.detail_konsinyasi.konsinyasi.kode_konsinyasi} - ${penjualanLama.detail_konsinyasi.produk.nama_produk} (${jumlahBaru} ${penjualanLama.detail_konsinyasi.produk.satuan})`;
 
     await supabase
@@ -207,13 +233,15 @@ export async function PUT(
         keterangan,
       });
 
+    console.log('✅ Penjualan updated successfully');
+
     return NextResponse.json({
       success: true,
       message: 'Penjualan berhasil diupdate',
     });
 
   } catch (error: any) {
-    console.error('Error updating penjualan:', error);
+    console.error('❌ Error updating penjualan:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -227,6 +255,8 @@ export async function DELETE(
     const supabase = await supabaseAuthenticated();
     const { id } = await params;
 
+    console.log('🗑️ Deleting penjualan:', id);
+
     // 1. Get data penjualan
     const { data: penjualan, error: penjualanError } = await supabase
       .from('penjualan_konsinyasi')
@@ -235,8 +265,10 @@ export async function DELETE(
         detail_konsinyasi:detail_konsinyasi_id (
           *,
           konsinyasi:konsinyasi_id (
+            id,
             kode_konsinyasi,
-            cabang_id
+            cabang_id,
+            status
           ),
           produk:produk_id (
             nama_produk,
@@ -251,8 +283,17 @@ export async function DELETE(
       return NextResponse.json({ error: 'Data penjualan tidak ditemukan' }, { status: 404 });
     }
 
+    // Check if konsinyasi sudah selesai
+    if (penjualan.detail_konsinyasi.konsinyasi.status === 'Selesai') {
+      return NextResponse.json({ 
+        error: 'Tidak dapat menghapus penjualan konsinyasi yang sudah selesai' 
+      }, { status: 400 });
+    }
+
     const jumlah = parseFloat(penjualan.jumlah_terjual);
     const total_nilai = parseFloat(penjualan.total_nilai_kita);
+
+    console.log(`  Mengembalikan ${jumlah} unit, nilai ${total_nilai}`);
 
     // 2. Kembalikan jumlah ke detail konsinyasi
     const { data: detail } = await supabase
@@ -266,6 +307,8 @@ export async function DELETE(
       const newJumlahSisa = parseFloat(detail.jumlah_sisa) + jumlah;
       const newKeuntunganToko = parseFloat(detail.keuntungan_toko) - parseFloat(penjualan.keuntungan_toko);
 
+      console.log(`  Update detail: terjual ${newJumlahTerjual}, sisa ${newJumlahSisa}`);
+
       await supabase
         .from('detail_konsinyasi')
         .update({
@@ -276,7 +319,31 @@ export async function DELETE(
         .eq('id', penjualan.detail_konsinyasi_id);
     }
 
-    // 3. Kurangi saldo kas
+    // 3. KEMBALIKAN STOCK PRODUK (karena penjualan dibatalkan)
+    if (penjualan.detail_konsinyasi?.produk_id) {
+      const { data: produk } = await supabase
+        .from('produk')
+        .select('stok')
+        .eq('id', penjualan.detail_konsinyasi.produk_id)
+        .single();
+
+      if (produk) {
+        const currentStock = parseFloat(produk.stok?.toString() || '0');
+        const newStock = currentStock + jumlah;
+        
+        console.log(`  Kembalikan stock produk: ${currentStock} + ${jumlah} = ${newStock}`);
+
+        await supabase
+          .from('produk')
+          .update({ 
+            stok: newStock,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', penjualan.detail_konsinyasi.produk_id);
+      }
+    }
+
+    // 4. Kurangi saldo kas
     if (penjualan.kas_id) {
       const { data: kas } = await supabase
         .from('kas')
@@ -286,6 +353,7 @@ export async function DELETE(
 
       if (kas) {
         const saldoBaru = parseFloat(kas.saldo) - total_nilai;
+        console.log(`  Update kas ${penjualan.kas_id}: ${kas.saldo} -> ${saldoBaru}`);
         
         await supabase
           .from('kas')
@@ -297,7 +365,7 @@ export async function DELETE(
       }
     }
 
-    // 4. Hapus transaksi kas terkait
+    // 5. Hapus transaksi kas terkait
     await supabase
       .from('transaksi_kas')
       .delete()
@@ -313,13 +381,15 @@ export async function DELETE(
 
     if (deleteError) throw deleteError;
 
+    console.log('✅ Penjualan deleted successfully');
+
     return NextResponse.json({
       success: true,
-      message: 'Penjualan berhasil dihapus, stock dan kas telah dikembalikan',
+      message: 'Penjualan berhasil dihapus dan stock dikembalikan',
     });
 
   } catch (error: any) {
-    console.error('Error deleting penjualan:', error);
+    console.error('❌ Error deleting penjualan:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
