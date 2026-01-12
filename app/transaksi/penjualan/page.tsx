@@ -296,7 +296,7 @@ export default function PenjualanListPage() {
                   <div className="flex items-start gap-2">
                     <span className="text-lg">👤</span>
                     <div className="flex-1">
-                      <p className="text-xs text-cyan-100">Trainer</p>
+                      <p className="text-xs text-cyan-100">Officer</p>
                       <p className="text-sm font-semibold">{item.pegawai?.nama || '-'}</p>
                     </div>
                   </div>
@@ -318,13 +318,7 @@ export default function PenjualanListPage() {
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">⏰</span>
-                      <div>
-                        <p className="text-xs text-cyan-100">Durasi</p>
-                        <p className="text-sm font-semibold">60 menit</p>
-                      </div>
-                    </div>
+                    
                   </div>
                 </div>
 
