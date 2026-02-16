@@ -55,6 +55,37 @@ export default function DetailPenjualanPage({
     }
   }, [id]);
 
+  // Refresh data when component becomes visible (useful when returning from modals)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchPenjualan();
+        fetchCicilans();
+      }
+    };
+
+    const handleFocus = () => {
+      fetchPenjualan();
+      fetchCicilans();
+    };
+
+    // Also refresh when cicilan data might change
+    const handleStorageChange = () => {
+      fetchPenjualan();
+      fetchCicilans();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [id]);
+
   const fetchPenjualan = async () => {
     try {
       setLoading(true);
@@ -575,7 +606,8 @@ export default function DetailPenjualanPage({
                 >
                   Kembali
                 </button>
-                {isHutang && !isLunas && canManage && (
+                {/* Show Cicil and Pelunasan buttons for both hutang and tunai (not lunas) */}
+                {!isLunas && canManage && (
                   <>
                     <button
                       onClick={() => setShowModalCicilan(true)}
