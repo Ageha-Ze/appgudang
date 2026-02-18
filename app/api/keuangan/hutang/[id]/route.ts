@@ -69,7 +69,8 @@ export async function GET(
     }
 
     // Calculate real totals
-    const realTotal = parseFloat(pembelianData.total?.toString() || '0');
+    const biayaKirim = parseFloat(pembelianData.biaya_kirim?.toString() || '0');
+    const realTotal = parseFloat(pembelianData.total?.toString() || '0') + biayaKirim;
     const dibayar = (cicilanData || []).reduce((sum, c) =>
       sum + parseFloat(c.jumlah_cicilan?.toString() || '0'), 0
     );
